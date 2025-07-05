@@ -18,8 +18,6 @@ import io
 import streamlit as st               #  pip install streamlit
 # pandas heb je (nu) niet meer nodig – laat staan om data in te lezen
 
-import pdfkit
-
 @st.cache_resource
 def html_to_pdf_bytes(html: str) -> bytes | None:
     try:
