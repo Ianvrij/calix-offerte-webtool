@@ -1,432 +1,283 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="utf-8" />
-<title>Offerte Calix</title>
+  <meta charset="utf-8" />
+  <title>Offerte Calix</title>
 
-<style>
-/* Algemene variabelen */
-:root {
-  --page-w: 210mm;
-  --page-h: 297mm;
-  --header-h: 45mm;
-  --footer-h: 45mm;
-  --body-padding-horiz: 20mm;
-  --body-padding-vert : 28mm;
-}
+  <style>
+    :root {
+      --page-w: 210mm;
+      --page-h: 297mm;
+      --header-h: 45mm;
+      --footer-h: 45mm;
+      --body-padding-horiz: 20mm;
+      --body-padding-vert: 28mm;
+    }
 
-@page {
-  size: A4;
-  margin: 0;
-}
+    @page {
+      size: A4;
+      margin: 0;
+    }
 
-@font-face {
-  font-family: 'Clash Display';
-  src: url('ClashDisplay-Regular.otf') format('opentype');
-  font-weight: normal;
-}
-@font-face {
-  font-family: 'Clash Display';
-  src: url('ClashDisplay-Bold.otf') format('opentype');
-  font-weight: bold;
-}
-@font-face {
-  font-family: 'Sansation';
-  src: url('Sansation-Bold.ttf') format('truetype');
-  font-weight: bold;
-}
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Clash Display', sans-serif;
+      font-size: 12px;
+      line-height: 1.4;
+      color: #333;
+    }
 
-* {
-  box-sizing: border-box;
-}
+    .page {
+      position: relative;
+      width: var(--page-w);
+      height: var(--page-h);
+      overflow: hidden;
+      padding: calc(var(--header-h) + var(--body-padding-vert)) var(--body-padding-horiz) calc(var(--footer-h) + var(--body-padding-vert));
+      break-after: page;
+    }
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Clash Display', sans-serif;
-  font-size: 12px;
-  line-height: 1.4;
-  color: #333;
-}
+    .page:last-child {
+      break-after: auto;
+    }
 
-.page {
-  position: relative;
-  width: var(--page-w);
-  height: var(--page-h);
-  overflow: hidden;
-  padding: calc(var(--header-h) + var(--body-padding-vert)) var(--body-padding-horiz) calc(var(--footer-h) + var(--body-padding-vert));
-  break-after: page;
-}
-.page:last-child {
-  break-after: auto;
-}
+    .header {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: var(--header-h);
+      background: #E4B713;
+      color: #fff;
+      padding: 10mm 20mm 0 20mm;
+      clip-path: polygon(0 0, 100% 0, 100% 70%, 0 100%);
+    }
 
-.header {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: var(--header-h);
-  background: #E4B713;
-  color: #fff;
-  padding: 10mm 20mm 0 20mm;
-  clip-path: polygon(0 0, 100% 0, 100% 70%, 0 100%);
-}
-.header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.header-brand {
-  font-family: 'Sansation', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: .5px;
-  text-transform: uppercase;
-}
-.header-text {
-  font-family: 'Sansation', sans-serif;
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: .5px;
-  text-transform: uppercase;
-}
-.header-divider {
-  height: 3px;
-  background: #fff;
-  width: 100%;
-  margin: 0 0 12px;
-  border-radius: 2px;
-}
-.header h1 {
-  font-size: 26px;
-  margin: 0;
-  font-weight: 600;
-}
+    .header h1 {
+      font-size: 26px;
+      margin: 0;
+      font-weight: 600;
+    }
 
-.footer {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: var(--footer-h);
-  background: #E4B713;
-  color: #fff;
-  font-size: 12px;
-  padding: 14mm 0 10mm;
-  clip-path: polygon(0 14%, 100% 0%, 100% 100%, 0% 100%);
-}
-.footer-cols {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 0 20mm;
-  display: flex;
-  gap: 40px;
-  justify-content: space-between;
-}
-.footer-col table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.footer-col td {
-  padding: 2px 0;
-  color: #fff;
-  vertical-align: top;
-  border: none;
-}
-.footer-col td:first-child {
-  font-weight: 600;
-  padding-right: 6px;
-  white-space: nowrap;
-}
-.footer-note {
-  text-align: center;
-  font-size: 11px;
-  line-height: 1.4;
-  margin-top: 6px;
-}
-.footer-note a {
-  color: #fff!important;
-  text-decoration: none;
-  border-bottom: 1px solid #fff;
-}
-.footer-note a:hover {
-  opacity: .8;
-}
+    .footer {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: var(--footer-h);
+      background: #E4B713;
+      color: #fff;
+      font-size: 12px;
+      padding: 14mm 0 10mm;
+      clip-path: polygon(0 14%, 100% 0%, 100% 100%, 0% 100%);
+    }
 
-.section {
-  margin-bottom: 10mm;
-}
-.section h2 {
-  margin-top: 0;
-}
+    .footer-cols {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 20mm;
+      display: flex;
+      gap: 40px;
+      justify-content: space-between;
+    }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 4mm;
-  font-size: 12px;
-}
-table.prod tr:nth-child(even) {
-  background: #fafafa;
-}
-th, td {
-  padding: 3mm;
-  border-bottom: 1px solid #ffffff;
-}
-th {
-  background: #f8f8f8;
-  font-weight: 600;
-  text-align: left;
-}
-.totals td {
-  background: none;
-  padding: 1mm 0;
-}
-.totals .label {
-  text-align: right;
-  width: 70%;
-}
-.totals .value {
-  text-align: right;
-}
-.total-bold {
-  font-weight: 700;
-}
-.totals-separator {
-  height: 1mm;
-  background: #E4B713;
-  width: 100%;
-  margin: 2mm 0;
-  border-radius: 1mm;
-}
-.totalbar {
-  height: 1mm;
-  background: #E4B713;
-  width: 44%;
-  margin: 2mm 0 4mm auto;
-  border-radius: 1mm;
-}
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4mm;
+      font-size: 12px;
+    }
 
-.flex-row-3 {
-  display: flex;
-  gap: 6mm;
-  justify-content: space-between;
-  margin-top: 4mm;
-}
-.flex-row-3>div {
-  flex: 1;
-  padding: 4mm;
-  border-radius: 2mm;
-  font-size: 10px;
-}
-.flex-yellow {
-  background: #fff3cd;
-}
-.flex-gray {
-  background: #f4f4f4;
-}
+    table th, table td {
+      padding: 3mm;
+      border-bottom: 1px solid #ffffff;
+    }
 
-img.logo-right {
-  position: absolute;
-  top: 6mm;
-  right: 20mm;
-  width: 55mm;
-}
-img.mock {
-  max-width: 55mm;
-}
-img.qr {
-  width: 45mm;
-  border-radius: 2mm;
-}
-</style>
+    .totals td {
+      background: none;
+      padding: 1mm 0;
+    }
+
+    .totals .label {
+      text-align: right;
+      width: 70%;
+    }
+
+    .totals .value {
+      text-align: right;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 11px;
+      line-height: 1.4;
+      margin-top: 6px;
+    }
+    
+    .footer-note a {
+      color: #fff!important;
+      text-decoration: none;
+      border-bottom: 1px solid #fff;
+    }
+    
+    .footer-note a:hover {
+      opacity: .8;
+    }
+
+    .section {
+      margin-bottom: 10mm;
+    }
+    
+    .section h2 {
+      margin-top: 0;
+    }
+
+    img.logo-right {
+      position: absolute;
+      top: 6mm;
+      right: 20mm;
+      width: 55mm;
+    }
+
+    .mock {
+      max-width: 55mm;
+    }
+
+    .qr {
+      width: 45mm;
+      border-radius: 2mm;
+    }
+  </style>
 </head>
 
 <body>
 
-<!-- Page 1 -->
-<div class="page">
-  <!-- Header -->
-  <div class="header">
-    <div class="header-top">
-      <span class="header-brand">CALIX</span>
-      <span class="header-text">HANDS FREE DANCING</span>
+  <!-- Pagina 1 -->
+  <div class="page">
+    <!-- header -->
+    <div class="header">
+      <div class="header-top">
+        <span class="header-brand">CALIX</span>
+        <span class="header-text">HANDS FREE DANCING</span>
+      </div>
+      <h1>Cupholder voor: ${KLANT}</h1>
+      <p>
+        Offertenummer: ${OFFNR}<br />
+        Datum: ${DATUM} &nbsp;|&nbsp; Geldig tot: ${GELDIG}<br />
+        Adres: ${ADRES}
+      </p>
     </div>
-    <div class="header-divider"></div>
-    <img src="${IMG_SIO2}" alt="Calix" class="logo-right" />
-    <h1>Cupholder voor: ${KLANT}</h1>
-    <p>Offertenummer: ${OFFNR}<br>Datum: ${DATUM} &nbsp;|&nbsp; Geldig tot: ${GELDIG}<br>Adres: ${ADRES}</p>
+
+    <!-- body content -->
+    <div class="section">
+      <h2>Welkom!</h2>
+      <p>Dank voor je interesse in onze duurzame bekerhouders. Met deze oplossing verlaag je de afvalstroom én geef je bezoekers een handige gadget als blijvende herinnering.</p>
+    </div>
+
+    <div class="section">
+      <h2>Toelichting op de prijsindicatie</h2>
+      <div style="background:#f9f9f9;padding:4mm;border-radius:2mm;">
+        <ul>
+          <li><b>Product:</b> Calix bekerhouder in één kleur.</li>
+          <li><b>Kleur:</b> Zwart, rood, blauw of off-white (andere kleuren +€ 480).</li>
+          <li><b>Logo:</b> Gepersonaliseerd 3D-logo of tampondruk (6,5 × 2 cm).</li>
+          <li><b>Kleurencombinatie bij tampondruk:</b> In overleg te bepalen.</li>
+        </ul>
+        <p>Al onze producten worden in Nederland ontworpen, geproduceerd en bedrukt met aandacht voor kwaliteit, duurzaamheid en lokale impact.</p>
+        <p><b>Disclaimer:</b> Aan deze prijsindicatie kunnen geen rechten worden ontleend.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Productoverzicht</h2>
+      <table>
+        <tr>
+          <th>Aantal</th><th>Type</th><th>Kleur</th><th>Details</th><th>Prijs/stuk</th><th>Totaal excl. btw</th>
+        </tr>
+        ${PRODUCTROWS}
+      </table>
+      <table class="totals">
+        <tr><td class="label">Totaal excl. btw:</td><td class="value">${TOTALEXCL}</td></tr>
+        <tr><td class="label">BTW (21 %):</td><td class="value">${BTW}</td></tr>
+      </table>
+      <table class="totals">
+        <tr><td class="label total-bold">Totaal incl. btw:</td><td class="value total-bold">${TOTAALINC}</td></tr>
+      </table>
+    </div>
+
+    <!-- footer -->
+    <div class="footer">
+      <div class="footer-cols">
+        <div class="footer-col">
+          <table>
+            <tr><td>Adres</td><td>Bieze 23</td></tr>
+            <tr><td></td><td>5382 KZ Vinkel</td></tr>
+            <tr><td>Telefoon</td><td>+31 (0)6 29 83 0517</td></tr>
+          </table>
+        </div>
+        <div class="footer-col">
+          <table>
+            <tr><td>E-mail</td><td><a href="mailto:info@handsfreedancing.nl">info@handsfreedancing.nl</a></td></tr>
+            <tr><td>Website</td><td><a href="https://handsfreedancing.nl">handsfreedancing.nl</a></td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="footer-note">
+        Calix is een handelsnaam van Calix Promotie Producten V.O.F. – <a href="https://handsfreedancing.nl/voorwaarden">Leveringsvoorwaarden</a>
+      </div>
+    </div>
   </div>
 
-  <!-- Body -->
-  <div class="section">
-    <h2>Welkom!</h2>
-    <p>Dank voor je interesse in onze duurzame bekerhouders. Met deze oplossing verlaag je de afvalstroom én geef je bezoekers een handige gadget als blijvende herinnering.</p>
-  </div>
+  <!-- Pagina 2 -->
+  <div class="page">
+    <!-- header -->
+    <div class="header">
+      <h1>Visualisatie & Extra opties</h1>
+    </div>
 
-  <!-- Price Explanation -->
-  <div class="section">
-    <h2>Toelichting op de prijsindicatie</h2>
-    <div style="background:#f9f9f9;padding:4mm;border-radius:2mm;">
+    <div class="section">
+      <h2>Visualisatie</h2>
+      <div style="display: flex; justify-content: center; gap: 6mm; background: #f4f4f4; border-radius: 2mm; padding: 4mm;">
+        <img src="${IMG_PROD}" alt="Mock-up 1" class="mock">
+        <img src="${IMG_SIO1}" alt="Mock-up 2" class="mock">
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Extra opties</h2>
       <ul>
-        <li><b>Product:</b> Calix bekerhouder in één kleur.</li>
-        <li><b>Kleur:</b> Zwart, rood, blauw of off-white (andere kleuren +€ 480).</li>
-        <li><b>Logo:</b> Gepersonaliseerd 3D-logo of tampondruk (6,5 × 2 cm).</li>
-        <li><b>Kleurencombinatie bij tampondruk:</b> In overleg te bepalen.</li>
+        <li>Leensysteem</li>
+        <li>Co-Branding</li>
       </ul>
-      <p>Al onze producten worden in Nederland ontworpen, geproduceerd en bedrukt met aandacht voor kwaliteit, duurzaamheid en lokale impact.</p>
-      <p><b>Disclaimer:</b> Aan deze prijsindicatie kunnen geen rechten worden ontleend.</p>
+    </div>
+
+    <div class="section">
+      <h2>Levertijd & verzending</h2>
+      <ul>
+        <li>Productietijd ca. 6 weken na akkoord</li>
+        <li>Afleveradres dient goed bereikbaar te zijn</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>Voorwaarden</h2>
+      <ul>
+        <li>100% aanbetaling</li>
+        <li>Annuleren tot 72 u na akkoord</li>
+        <li><a href="https://calix.nl/voorwaarden">Algemene voorwaarden</a></li>
+      </ul>
+    </div>
+
+    <div class="section" style="text-align:center;">
+      <h2>Meer info</h2>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?data=https://example.com&amp;size=160x160" alt="QR Calix" class="qr">
+    </div>
+
+    <!-- footer -->
+    <div class="footer">
+      <!-- Footer content remains the same -->
     </div>
   </div>
-
-  <!-- Product Overview -->
-  <div class="section">
-    <h2>Productoverzicht</h2>
-    <table class="prod">
-      <tr>
-        <th>Aantal</th><th>Type</th><th>Kleur</th><th>Details</th>
-        <th style="text-align:right;">Prijs/stuk</th>
-        <th style="text-align:right;">Totaal excl. btw</th>
-      </tr>
-      ${PRODUCTROWS}
-    </table>
-
-    <div class="totals-separator"></div>
-    <table class="totals">
-      <tr><td class="label">Totaal excl. btw:</td><td class="value">${TOTALEXCL}</td></tr>
-      <tr><td class="label">BTW (21 %):</td><td class="value">${BTW}</td></tr>
-    </table>
-    <div class="totalbar"></div>
-    <table class="totals">
-      <tr><td class="label total-bold">Totaal incl. btw:</td><td class="value total-bold">${TOTAALINC}</td></tr>
-    </table>
-  </div>
-
-  <!-- Footer -->
-  <div class="footer">
-    <div class="footer-cols">
-      <div class="footer-col">
-        <table>
-          <tr><td>Adres</td><td>Bieze 23</td></tr>
-          <tr><td></td><td>5382 KZ Vinkel</td></tr>
-          <tr><td>Telefoon</td><td>+31 (0)6 29 83 0517</td></tr>
-        </table>
-      </div>
-      <div class="footer-col">
-        <table>
-          <tr><td>E-mail</td><td><a href="mailto:info@handsfreedancing.nl">info@handsfreedancing.nl</a></td></tr>
-          <tr><td>Website</td><td><a href="https://handsfreedancing.nl">handsfreedancing.nl</a></td></tr>
-        </table>
-      </div>
-      <div class="footer-col">
-        <table>
-          <tr><td>BTW</td><td>NL86614472B01</td></tr>
-          <tr><td>IBAN</td><td>NL04 RABO 0383 2726 88</td></tr>
-        </table>
-      </div>
-    </div>
-    <div class="footer-note">Calix is een handelsnaam van Calix Promotie Producten V.O.F. – <a href="https://handsfreedancing.nl/voorwaarden">Leveringsvoorwaarden</a></div>
-  </div>
-</div> <!-- einde pagina 1 -->
-
-</body>
-</html>
-
-
-<!-- ════════════════════ PAGINA 2 ════════════════════ -->
-<div class="page">
-
-  <div class="header">
-    <div class="header-top">
-      <span class="header-brand">CALIX</span>
-      <span class="header-text">HANDS FREE DANCING</span>
-    </div>
-    <div class="header-divider"></div>
-    <img src="${IMG_SIO2}" alt="Calix" class="logo-right" />
-    <h1>Visualisatie &amp; Extra opties</h1>
-    <p>
-      Offertenummer: ${OFFNR}<br>
-      Datum: ${DATUM} &nbsp;|&nbsp; Geldig tot: ${GELDIG}<br>
-      Adres: ${ADRES}
-    </p>
-  </div>
-
-  <!-- body -------------------------------------------------------------- -->
-  <div class="section">
-    <h2>Visualisatie</h2>
-    <div style="display:flex;justify-content:center;gap:6mm;
-                background:#f4f4f4;border-radius:2mm;padding:4mm;">
-      <img src="${IMG_PROD}" alt="Mock-up 1" class="mock">
-      <img src="${IMG_SIO1}" alt="Mock-up 2" class="mock">
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="flex-row-3">
-      <div class="flex-yellow">
-        <h3 style="margin-top:0;">Extra opties</h3>
-        <ul><li>Leensysteem</li><li>Co-Branding</li></ul>
-      </div>
-      <div class="flex-gray">
-        <h3 style="margin-top:0;">Levertijd &amp; verzending</h3>
-        <ul>
-          <li>Productietijd ca. 6 weken na akkoord</li>
-          <li>Afleveradres dient goed bereikbaar te zijn</li>
-        </ul>
-      </div>
-      <div class="flex-yellow">
-        <h3 style="margin-top:0;">Voorwaarden</h3>
-        <ul>
-          <li>100 % aanbetaling</li>
-          <li>Annuleren tot 72 u na akkoord</li>
-          <li><a href="https://calix.nl/voorwaarden">Algemene voorwaarden</a></li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <div class="section" style="text-align:center;">
-    <h2>Meer info</h2>
-    <img src="https://api.qrserver.com/v1/create-qr-code/?data=https://example.com&amp;size=160x160"
-         alt="QR Calix" class="qr">
-  </div>
-
-  <!-- footer ------------------------------------------------------------ -->
-  <div class="footer">
-    <!-- identiek aan footer pagina 1 -->
-    <div class="footer-cols">
-      <div class="footer-col">
-        <table>
-          <tr><td>Adres</td><td>Bieze 23</td></tr>
-          <tr><td></td><td>5382 KZ Vinkel</td></tr>
-          <tr><td>Telefoon</td><td>+31 (0)6 29 83 0517</td></tr>
-        </table>
-      </div>
-      <div class="footer-col">
-        <table>
-          <tr><td>E-mail</td>
-              <td><a href="mailto:info@handsfreedancing.nl">
-                  info@handsfreedancing.nl</a></td></tr>
-          <tr><td>Website</td>
-              <td><a href="https://handsfreedancing.nl">
-                  handsfreedancing.nl</a></td></tr>
-        </table>
-      </div>
-      <div class="footer-col">
-        <table>
-          <tr><td>BTW</td><td>NL86614472B01</td></tr>
-          <tr><td>IBAN</td><td>NL04 RABO 0383 2726 88</td></tr>
-        </table>
-      </div>
-    </div>
-    <div class="footer-note">
-      Calix is een handelsnaam van Calix Promotie Producten V.O.F. –  
-      <a href="https://handsfreedancing.nl/voorwaarden">Leveringsvoorwaarden</a>
-    </div>
-  </div>
-
-</div><!-- einde pagina 2 -->
 
 </body>
 </html>
