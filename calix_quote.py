@@ -1,88 +1,62 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Calix – offerte-generator met PDF-fallback
-Streamlit Cloud-proof:  WeasyPrint ▸ pdfkit ▸ xhtml2pdf
+Calix – offerte-generator (Streamlit)
+• HTML-preview in de app
+• PDF-download (WeasyPrint of xhtml2pdf fallback)
+Alle afbeeldingen worden inline (Base-64) in de HTML gezet → nooit meer
+‘File not found’.
 """
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime, timedelta
 from string import Template
 from decimal import Decimal, ROUND_HALF_UP
+import base64
 import io
-import tempfile
-import subprocess
-import streamlit as st
 
-# ────────────────────────────── PDF BACKEND DETECTIE ──────────────────────
-def _detect_backends() -> list[str]:
-    order: list[str] = []
+import streamlit as st               #  pip install streamlit
+# pandas heb je (nu) niet meer nodig – laat staan om data in te lezen
 
-    # 1) WeasyPrint  ────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────────────────
+# PDF-helpers
+# ---------------------------------------------------------------------------
+def _load_pdf_backend() -> str | None:
+    """Probeer WeasyPrint; zo niet, val terug op xhtml2pdf; anders None."""
     try:
-        from weasyprint import HTML  # noqa: F401
-        # dummy probeert ≈ 1 kB PDF te renderen – mis je libpango, dan crasht het hier
-        HTML(string="<b>test</b>").write_pdf()
-        order.append("weasy")
+        from weasyprint import HTML   # noqa: F401
+        return "weasy"
     except Exception:
-        pass
-
-    # 2) pdfkit + wkhtmltopdf  ─────────────────────────────────────────────
-    try:
-        import pdfkit  # noqa: F401
-        # check of binary aanwezig
-        subprocess.run(["wkhtmltopdf", "-V"], check=True, capture_output=True)
-        order.append("pdfkit")
-    except Exception:
-        pass
-
-    # 3) xhtml2pdf  ────────────────────────────────────────────────────────
-    try:
-        from xhtml2pdf import pisa  # noqa: F401
-        order.append("pisa")
-    except Exception:
-        pass
-    return order
-
-
-BACKENDS = _detect_backends()
-
-
-def html_to_pdf_bytes(html: str, base_dir: Path) -> bytes | None:
-    """Geef bytes(PDF) terug of None als geen enkele backend lukt."""
-    for backend in BACKENDS:
         try:
-            if backend == "weasy":
-                from weasyprint import HTML
-                return HTML(string=html,
-                            base_url=base_dir.as_uri()).write_pdf()
-
-            if backend == "pdfkit":
-                import pdfkit
-                with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp:
-                    pdfkit.from_string(html, tmp.name,
-                                       options={"enable-local-file-access": ""})
-                    return Path(tmp.name).read_bytes()
-
-            if backend == "pisa":
-                from xhtml2pdf import pisa
-                result = io.BytesIO()
-
-                def _link_cb(uri, rel):
-                    return (base_dir / uri).resolve().as_posix()
-
-                pisa.CreatePDF(io.StringIO(html), dest=result, encoding="utf-8",
-                               link_callback=_link_cb)
-                return result.getvalue()
-        except Exception:
-            continue  # probeer volgende backend
-    return None
+            from xhtml2pdf import pisa  # noqa: F401
+            return "pisa"
+        except Exception:             # pragma: no cover
+            return None
 
 
-# ────────────────────────────── FORMATTERS ────────────────────────────────
+PDF_BACKEND = _load_pdf_backend()
+
+
+def html_to_pdf_bytes(html: str) -> bytes | None:
+    """Render HTML → bytes(PDF) met beschikbare backend."""
+    if PDF_BACKEND == "weasy":
+        from weasyprint import HTML
+        return HTML(string=html, base_url=".").write_pdf()
+    if PDF_BACKEND == "pisa":
+        from xhtml2pdf import pisa
+        result = io.BytesIO()
+        pisa.CreatePDF(io.StringIO(html), dest=result, encoding="utf-8")
+        return result.getvalue()
+    return None                       # geen backend – user kan HTML printen
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Formatters & helpers
+# ---------------------------------------------------------------------------
 def eur(val: float | Decimal) -> str:
+    """€-notatie met , als decimaalteken en . als duizend-scheiding."""
     q = Decimal(val).quantize(Decimal("0.01"), ROUND_HALF_UP)
-    return f"€ {q:,.2f}".replace(",", " ").replace(".", ",").replace(" ", ".")
+    return f"€ {q:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def tampon_omschrijving(kleuren: int) -> str:
@@ -90,142 +64,190 @@ def tampon_omschrijving(kleuren: int) -> str:
            " tampondruk, Inclusief Ontwerpcontrole"
 
 
-# ────────────────────────────── STREAMLIT UI ──────────────────────────────
-SELF_PATH = Path(__file__).resolve()
-BASE_DIR  = SELF_PATH.parent
-TEMPLATE  = Template((BASE_DIR / "template.html").read_text(encoding="utf-8"))
+def b64_img(filename: str) -> str:
+    """Geef data-URI voor lokaal plaatje; werkt overal (ook Streamlit Cloud)."""
+    p = Path(__file__).with_name(filename)
+    mime = "image/png" if filename.lower().endswith("png") else "image/jpeg"
+    data = base64.b64encode(p.read_bytes()).decode()
+    return f"data:{mime};base64,{data}"
 
+
+# ────────────────────────────────────────────────────────────────────────────
+# Streamlit-UI
+# ---------------------------------------------------------------------------
 st.set_page_config(page_title="Calix Offertegenerator", layout="centered")
 st.title("Calix – Offertegenerator")
 
-# ── Invoer – hoofdoptie ────────────────────────────────────────────────────
+# HTML-template laden (de placeholders worden straks ingevuld)
+template_path = Path(__file__).with_name("template.html")
+template = Template(template_path.read_text(encoding="utf-8"))
+
+# ▸ Hoofdoptie
 st.header("Hoofdoptie")
-c1, c2 = st.columns(2)
-with c1:
+cA, cB = st.columns(2)
+with cA:
     klant   = st.text_input("Naam klant")
     adres   = st.text_input("Adres")
     offnr   = st.text_input("Offertenummer")
-    aantal  = st.number_input("Aantal", 1, value=1000)
-with c2:
-    typ     = st.selectbox("Type", ["Bedrukt", "3D-logo"])
-    kleuren = st.selectbox("Aantal kleuren", [0, 1, 2, 3],
-                           index=0 if typ == "3D-logo" else 1,
-                           disabled=(typ != "Bedrukt"))
-    bandje  = st.selectbox("Kleur bandje",
-                           ["Standaard", "Special", "Zwart",
-                            "Off White", "Blauw", "Rood"])
-    korting = st.number_input("Korting (%)", 0.0, 100.0, 0.0)
-    verhog  = st.number_input("Verhoging extra (%)", 0.0, 100.0, 10.0)
+    aantal  = st.number_input("Aantal", min_value=1, value=1000)
+with cB:
+    product_type     = st.selectbox("Type", ["Bedrukt", "3D-logo"])
+    kleuren_aantal   = st.selectbox("Aantal kleuren", [1, 2, 3],
+                                     disabled=(product_type != "Bedrukt"))
+    kleurkeuzes      = ["Standaard", "Special", "Zwart",
+                        "Off White", "Blauw", "Rood"]
+    kleur_bandje     = st.selectbox("Kleur bandje", kleurkeuzes, index=2)
+    korting_pct      = st.number_input("Korting (%)", 0.0, 100.0, 0.0)
+    verhoging_pct    = st.number_input("Verhoging extra (%)", 0.0, 100.0, 10.0)
 
-opties_aantal = st.number_input("Aantal extra opties (0-3)", 0, 3, 0)
+opties_aantal = st.number_input("Aantal extra opties (0–3)", 0, 3, 0)
 
-# ── Extra opties ───────────────────────────────────────────────────────────
-extra = []
+# ▸ Extra opties
+extra_opties: list[dict] = []
 if opties_aantal:
     st.header("Extra opties")
     for i in range(1, opties_aantal + 1):
         st.subheader(f"Optie {i}")
-        d1, d2, d3, d4 = st.columns(4)
-        with d1:
-            oaantal = st.number_input("Aantal", 1, key=f"oa_{i}")
-        with d2:
-            otyp    = st.selectbox("Type", ["Bedrukt", "3D-logo"], key=f"ot_{i}")
-        with d3:
-            okleur  = st.selectbox("Kleuren", [0, 1, 2, 3],
-                                   index=0 if otyp == "3D-logo" else 1,
-                                   disabled=(otyp != "Bedrukt"), key=f"ok_{i}")
-        with d4:
-            oband   = st.selectbox("Bandje",
-                                   ["Standaard", "Special", "Zwart",
-                                    "Off White", "Blauw", "Rood"],
-                                   key=f"ob_{i}")
-        okort   = st.number_input("Korting (%)", 0.0, 100.0, 0.0, key=f"oko_{i}")
-        extra.append(dict(aantal=oaantal, typ=otyp,
-                          kleuren=okleur, band=oband, korting=okort))
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            a = st.number_input("Aantal", 1, key=f"opt_aantal_{i}")
+        with c2:
+            t = st.selectbox("Type", ["Bedrukt", "3D-logo"],
+                             key=f"opt_type_{i}")
+        with c3:
+            kc = st.selectbox("Kleuren", [1, 2, 3],
+                              disabled=(t != "Bedrukt"), key=f"opt_kc_{i}")
+        with c4:
+            kband = st.selectbox("Bandje-kleur", kleurkeuzes,
+                                 index=0, key=f"opt_band_{i}")
+        kort = st.number_input("Korting (%)", 0.0, 100.0, 0.0,
+                               key=f"opt_kort_{i}")
+        extra_opties.append(dict(aantal=a, type=t,
+                                 kleuren=kc, band=kband, korting=kort))
 
-# ── Prijstabellen (uit Excel) ──────────────────────────────────────────────
-PRIJSTABEL = {
-    "3D":      {1000: 2.79, 2000: 1.63, 5000: 1.09, 7500: 0.97,
-                10000: 0.91, 50000: 0.75},
-    "B1":      {1000: 2.07, 2000: 1.94, 5000: 1.38, 7500: 1.36,
-                10000: 1.27, 50000: 1.20},
-    "B2":      {1000: 2.37, 2000: 2.15, 5000: 1.51, 7500: 1.48,
-                10000: 1.35, 50000: 1.24},
-    "B3":      {1000: 2.57, 2000: 2.31, 5000: 1.61, 7500: 1.57,
-                10000: 1.43, 50000: 1.28},
+st.divider()
+
+# ────────────────────────────────────────────────────────────────────────────
+# Prijstabellen – rechtstreeks uit Excel overgenomen
+# ---------------------------------------------------------------------------
+prijs = {
+    "3D": {
+        1000: 2.79, 2000: 1.63, 5000: 1.09,
+        7500: 0.97, 10000: 0.91, 50000: 0.75,
+    },
+    "Bedrukt1": {
+        1000: 2.07, 2000: 1.94, 5000: 1.38,
+        7500: 1.36, 10000: 1.27, 50000: 1.20,
+    },
+    "Bedrukt2": {
+        1000: 2.37, 2000: 2.15, 5000: 1.51,
+        7500: 1.48, 10000: 1.35, 50000: 1.24,
+    },
+    "Bedrukt3": {
+        1000: 2.57, 2000: 2.31, 5000: 1.61,
+        7500: 1.57, 10000: 1.43, 50000: 1.28,
+    },
 }
-STAFFELS = sorted(PRIJSTABEL["3D"])
+staffels = sorted(prijs["3D"])
 
 
 def _staffel(a: int) -> int:
-    return min(STAFFELS, key=lambda s: abs(s - a))
+    """Pak dichtsbijzijnde staffel uit de tabel."""
+    return min(staffels, key=lambda x: abs(x - a))
 
 
-def kost(typ_: str, a: int, kl: int) -> float:
-    key = "3D" if typ_ == "3D-logo" else f"B{kl}"
-    return PRIJSTABEL[key][_staffel(a)]
+def kostprijs(typ: str, aant: int, kl: int) -> float:
+    key = "3D" if typ == "3D-logo" else f"Bedrukt{kl}"
+    return prijs[key][_staffel(aant)]
 
 
-def vp(kp: float, vh: float, ko: float) -> float:
-    return kp * (1 + vh/100) * (1 - ko/100)
+def verkoopprijs(kost: float, verh: float, kort: float) -> float:
+    return kost * (1 + verh / 100) * (1 - kort / 100)
 
 
-# ── Berekening + tabelrijen ────────────────────────────────────────────────
-rows, total_excl = [], Decimal(0)
+# ────────────────────────────────────────────────────────────────────────────
+# Berekeningen
+# ---------------------------------------------------------------------------
+rows: list[str] = []
+total_excl: Decimal = Decimal(0)
 
-def add_row(a: int, t: str, b: str, price: float, oms: str):
+
+def append_row(a: int, t: str, kband: str, stprijs: float, oms: str) -> None:
+    """Voeg een rij aan de product-tabel toe + tel op bij totaal."""
     global total_excl
     rows.append(f"""
-<tr><td>{a}</td><td>{t}</td><td>{b}</td>
-<td>{oms}</td>
-<td style="text-align:right;">{eur(price)}</td>
-<td style="text-align:right;">{eur(price*a)}</td></tr>""")
-    total_excl += Decimal(price * a)
+<tr><td>{a}</td><td>{t}</td><td>{kband}</td>
+<td>{oms}</td><td style="text-align:right;">{eur(stprijs)}</td>
+<td style="text-align:right;">{eur(stprijs * a)}</td></tr>""")
+    total_excl += Decimal(stprijs * a)
 
-# hoofdoptie
-kp = kost(typ, aantal, kleuren)
-vprijs = vp(kp, verhog, korting)
-oms = tampon_omschrijving(kleuren) if typ == "Bedrukt" else \
-      "3D-logo inbegrepen, Inclusief Ontwerpcontrole"
-add_row(aantal, typ, bandje, vprijs, oms)
 
-# extra
-for ex in extra:
-    kp = kost(ex["typ"], ex["aantal"], ex["kleuren"])
-    vprijs = vp(kp, verhog, ex["korting"])
-    oms = tampon_omschrijving(ex["kleuren"]) if ex["typ"] == "Bedrukt" else \
-          "3D-logo inbegrepen, Inclusief Ontwerpcontrole"
-    add_row(ex["aantal"], ex["typ"], ex["band"], vprijs, oms)
+# ▸ hoofdoptie
+kp = kostprijs(product_type, aantal, kleuren_aantal)
+vp = verkoopprijs(kp, verhoging_pct, korting_pct)
+omschrijving = tampon_omschrijving(kleuren_aantal) \
+    if product_type == "Bedrukt" else \
+    "3D-logo inbegrepen, Inclusief Ontwerpcontrole"
+append_row(aantal, product_type, kleur_bandje, vp, omschrijving)
 
-# special & transport
-special = bandje.lower() == "special" or any(e["band"].lower() == "special" for e in extra)
+# ▸ extra opties
+for opt in extra_opties:
+    kp = kostprijs(opt["type"], opt["aantal"], opt["kleuren"])
+    vp = verkoopprijs(kp, verhoging_pct, opt["korting"])
+    oms = tampon_omschrijving(opt["kleuren"]) \
+        if opt["type"] == "Bedrukt" else \
+        "3D-logo inbegrepen, Inclusief Ontwerpcontrole"
+    append_row(opt["aantal"], opt["type"], opt["band"], vp, oms)
+
+# ▸ toeslagen
+special = (kleur_bandje.lower() == "special" or
+           any(o["band"].lower() == "special" for o in extra_opties))
 if special:
-    add_row(1, "Extra", "Special", 480,
-            "Voor afwijkende kleurkeuze (‘Special’ bandje)")
+    append_row(1, "Extra", "Special", 480,
+               "Voor afwijkende kleurkeuze (‘Special’ bandje)")
 
 if aantal > 10000:
-    add_row(1, "Verzendkosten", "–", 150, "Extra kosten voor zending")
+    append_row(1, "Verzendkosten", "–", 150, "Extra kosten voor zending")
 
+# totaal & BTW
 btw        = total_excl * Decimal("0.21")
 totaal_inc = total_excl + btw
 
-# ── HTML vullen ────────────────────────────────────────────────────────────
-html = TEMPLATE.safe_substitute(
-    KLANT=klant or "–", ADRES=adres or "–", OFFNR=offnr or "–",
+# ────────────────────────────────────────────────────────────────────────────
+# HTML genereren
+# ---------------------------------------------------------------------------
+img_dict = {
+    "IMG_SIO2": b64_img("Tilted SIO 2 - PNG.png"),
+    "IMG_SIO1": b64_img("Tilted SIO 1 - PNG.png"),
+    "IMG_PROD": b64_img("product.jpg"),
+}
+
+html_out = template.safe_substitute(
+    KLANT=klant or "–",
+    ADRES=adres or "–",
+    OFFNR=offnr or "–",
     DATUM=datetime.now().strftime("%d-%m-%Y"),
-    GELDIG=(datetime.now()+timedelta(days=14)).strftime("%d-%m-%Y"),
+    GELDIG=(datetime.now() + timedelta(days=14)).strftime("%d-%m-%Y"),
     PRODUCTROWS="".join(rows),
-    TOTALEXCL=eur(total_excl), BTW=eur(btw), TOTAALINC=eur(totaal_inc)
+    TOTALEXCL=eur(total_excl),
+    BTW=eur(btw),
+    TOTAALINC=eur(totaal_inc),
+    **img_dict,
 )
 
-# ── Downloads & preview ────────────────────────────────────────────────────
-st.download_button("Download HTML", html, "offerte.html", "text/html")
-st.components.v1.html(html, height=800, scrolling=True)
+# ────────────────────────────────────────────────────────────────────────────
+# Downloads & Preview
+# ---------------------------------------------------------------------------
+st.download_button("Download HTML", html_out,
+                   file_name=f"offerte_{klant or 'calix'}.html",
+                   mime="text/html")
+st.components.v1.html(html_out, height=800, scrolling=True)
 
-pdf_bytes = html_to_pdf_bytes(html, BASE_DIR)
-if pdf_bytes:
-    st.download_button("Download PDF", pdf_bytes,
-                       f"offerte_{datetime.now():%Y%m%d}.pdf",
-                       "application/pdf")
+pdf_data = html_to_pdf_bytes(html_out)
+if pdf_data:
+    st.download_button("Download PDF", pdf_data,
+                       file_name=f"offerte_{klant or 'calix'}.pdf",
+                       mime="application/pdf")
 else:
-    st.warning("PDF-backend ontbreekt.  Download de HTML en druk af naar PDF.")
+    st.info("PDF-backend niet beschikbaar. "
+            "Download de HTML en print die in je browser naar PDF.")
