@@ -35,33 +35,17 @@ def html_to_pdf_bytes(html: str) -> bytes | None:
 # ────────────────────────────────────────────────────────────────────────────
 # PDF-helpers
 # ---------------------------------------------------------------------------
-def _load_pdf_backend() -> str | None:
-    """Probeer WeasyPrint; zo niet, val terug op xhtml2pdf; anders None."""
-    try:
-        from weasyprint import HTML   # noqa: F401
-        return "weasy"
-    except Exception:
-        try:
-            from xhtml2pdf import pisa  # noqa: F401
-            return "pisa"
-        except Exception:             # pragma: no cover
-            return None
 
-
-PDF_BACKEND = _load_pdf_backend()
-
-
+@st.cache_resource
 def html_to_pdf_bytes(html: str) -> bytes | None:
-    """Render HTML → bytes(PDF) met beschikbare backend."""
-    if PDF_BACKEND == "weasy":
-        from weasyprint import HTML
+    try:
+        from weasyprint import HTML, __version__ as WV
+        st.write(f"PDF-engine: WeasyPrint {WV}")   # verschijnt in je app
         return HTML(string=html, base_url=".").write_pdf()
-    if PDF_BACKEND == "pisa":
-        from xhtml2pdf import pisa
-        result = io.BytesIO()
-        pisa.CreatePDF(io.StringIO(html), dest=result, encoding="utf-8")
-        return result.getvalue()
-    return None                       # geen backend – user kan HTML printen
+    except Exception as e:
+        st.exception(e)        # nette foutmelding i.p.v. crash
+        return None
+                     # geen backend – user kan HTML printen
 
 
 # ────────────────────────────────────────────────────────────────────────────
