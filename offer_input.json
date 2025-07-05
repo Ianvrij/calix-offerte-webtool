@@ -1,0 +1,25 @@
+{
+  "client": {
+    "name": "TEST BV",
+    "address": "Oude Kijk in 't Jatstraat 5, 9712 EA Groningen",
+    "offer_number": "3241234"
+  },
+  "offers": [
+    {
+      "quantity": 10001,
+      "product_type": "3D-logo",
+      "colours": 3,
+      "band_color": "Zwart",
+      "extra_increase_pct": 0.10,
+      "discount_pct": 0.10
+    },
+    {
+      "quantity": 5050,
+      "product_type": "Bedrukt",
+      "colours": 3,
+      "band_color": "Standaard",
+      "extra_increase_pct": 0.10,
+      "discount_pct": 0.00
+    }
+  ]
+}
