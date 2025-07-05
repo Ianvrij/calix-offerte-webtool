@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <title>Offerte Calix</title>
 
-<!-- ── Styling (100 % identiek aan VBA-versie) ─────────────────────────── -->
+<!-- ── Styling ─────────────────────────── -->
 <style>
 @page { size:A4; margin:0; }
 @font-face{font-family:'Clash Display';src:url('ClashDisplay-Regular.otf') format('opentype');font-weight:normal;}
@@ -16,7 +16,6 @@ body        { margin:0; padding:0; font-family:'Clash Display',sans-serif;
 .page       { width:210mm; height:297mm; position:relative; overflow:hidden; }
 .section    { padding:0 60px 8px 60px; margin-bottom:0; }
 
-/* header */
 .header     { background:#E4B713; color:#fff; padding:10px 30px 80px 30px;
               clip-path:polygon(0 0,100% 0,100% 70%,0 100%); position:relative; }
 .header-top { display:flex; align-items:center; justify-content:space-between; }
@@ -27,7 +26,6 @@ body        { margin:0; padding:0; font-family:'Clash Display',sans-serif;
 .header-divider{ height:3px; background:#fff; width:100%; margin:0 0 30px; border-radius:2px; }
 .header h1  { font-size:26px; margin:0; font-weight:600; }
 
-/* footer */
 .footer-fixed{ position:absolute; left:0; bottom:0; width:100%;
                background:#E4B713; color:#fff; font-size:12px; padding:50px 0 30px;
                clip-path:polygon(0 14%,100% 0%,100% 100%,0% 100%); z-index:10; }
@@ -41,7 +39,6 @@ body        { margin:0; padding:0; font-family:'Clash Display',sans-serif;
                 transition:opacity .3s ease; }
 .footer-note a:hover{ opacity:.8; }
 
-/* tabel + totals */
 table      { width:100%; border-collapse:collapse; margin-top:10px; font-size:12px; }
 table.prod tr:nth-child(even){ background:#fafafa; }
 th,td      { padding:6px; border-bottom:1px solid #FFFFFF; }
@@ -53,38 +50,41 @@ th         { background:#f8f8f8; font-weight:600; text-align:left; }
 .totals-separator{ height:4px; background:#E4B713; width:100%; margin:4px 0; border-radius:2px; }
 .totalbar  { height:4px; background:#E4B713; width:44%; margin:4px 0 8px auto; border-radius:2px; }
 
-/* flex-blokken op pagina 2 */
 .flex-row-3{ display:flex; gap:20px; justify-content:space-between; margin-top:14px; }
 .flex-row-3>div{ flex:1; padding:12px; border-radius:6px; font-size:10px; }
 .flex-yellow{ background:#fff3cd; }
 .flex-gray { background:#f4f4f4; }
 </style>
-</head>
 
+<!-- ── Automatisch printen bij openen ───── -->
+<script>
+window.onload = function() {
+    setTimeout(function() {
+        window.print();
+    }, 500);
+}
+</script>
+
+</head>
 <body>
 
-<!-- ════════════════════ PAGINA 1 ════════════════════ -->
+<!-- ═══════════ PAGINA 1 ═══════════ -->
 <div class="page">
-
-  <!-- header ------------------------------------------------------------------>
+  <!-- header -->
   <div class="header">
     <div class="header-top">
       <span class="header-brand">CALIX</span>
       <span class="header-text">HANDS FREE DANCING</span>
     </div>
     <div class="header-divider"></div>
-
     <img src="${IMG_SIO2}" alt="Calix" style="position:absolute;top:23px;right:40px;width:220px;" />
-
     <h1>Cupholder voor: ${KLANT}</h1>
-    <p>
-      Offertenummer: ${OFFNR}<br />
-      Datum: ${DATUM} &nbsp;|&nbsp; Geldig tot: ${GELDIG}<br />
-      Adres: ${ADRES}
-    </p>
+    <p>Offertenummer: ${OFFNR}<br />
+       Datum: ${DATUM} &nbsp;|&nbsp; Geldig tot: ${GELDIG}<br />
+       Adres: ${ADRES}</p>
   </div>
 
-  <!-- Welkom ------------------------------------------------------------------>
+  <!-- welkom -->
   <div class="section">
     <h2>Welkom!</h2>
     <p>Dank voor je interesse in onze duurzame bekerhouders. Met deze oplossing
@@ -92,27 +92,22 @@ th         { background:#f8f8f8; font-weight:600; text-align:left; }
        blijvende herinnering.</p>
   </div>
 
-  <!-- Toelichting ------------------------------------------------------------->
+  <!-- toelichting -->
   <div class="section">
     <h2>Toelichting op de prijsindicatie</h2>
     <div style="background:#f9f9f9;padding:12px;border-radius:6px;">
       <ul>
         <li><b>Product:</b> Calix bekerhouder, uitgevoerd in één kleur.</li>
-        <li><b>Kleur:</b> Keuze uit zwart, rood, blauw of off-white. Andere
-            kleuren mogelijk tegen een meerprijs van € 480.</li>
-        <li><b>Logo:</b> Gepersonaliseerd 3D-logo of tampondruk
-            (logovlak: 6,5 × 2 cm).</li>
+        <li><b>Kleur:</b> Keuze uit zwart, rood, blauw of off-white. Andere kleuren mogelijk tegen een meerprijs van € 480.</li>
+        <li><b>Logo:</b> Gepersonaliseerd 3D-logo of tampondruk (logovlak: 6,5 × 2 cm).</li>
         <li><b>Kleurencombinatie bij tampondruk:</b> In overleg te bepalen.</li>
       </ul>
-      <p>Al onze producten worden met zorg ontworpen, geproduceerd en bedrukt
-         in Nederland, met aandacht voor kwaliteit, duurzaamheid en lokale
-         impact.</p>
-      <p><b>Disclaimer:</b> Aan deze prijsindicatie kunnen geen rechten worden
-         ontleend.</p>
+      <p>Al onze producten worden met zorg ontworpen, geproduceerd en bedrukt in Nederland.</p>
+      <p><b>Disclaimer:</b> Aan deze prijsindicatie kunnen geen rechten worden ontleend.</p>
     </div>
   </div>
 
-  <!-- Productoverzicht -------------------------------------------------------->
+  <!-- productoverzicht -->
   <div class="section">
     <h2>Productoverzicht</h2>
     <table class="prod">
@@ -138,7 +133,7 @@ th         { background:#f8f8f8; font-weight:600; text-align:left; }
     </table>
   </div>
 
-  <!-- footer ------------------------------------------------------------------>
+  <!-- footer -->
   <div class="footer-fixed">
     <div class="footer-cols">
       <div class="footer-col">
@@ -166,13 +161,12 @@ th         { background:#f8f8f8; font-weight:600; text-align:left; }
       </div>
     </div>
     <div class="footer-note">
-      Calix is een handelsnaam van Calix Promotie Producten V.O.F.
-      Op deze aanbieding zijn onze leveringsvoorwaarden van toepassing.
+      Calix is een handelsnaam van Calix Promotie Producten V.O.F.  
+      Op deze aanbieding zijn onze leveringsvoorwaarden van toepassing.  
       <a href="https://handsfreedancing.nl/voorwaarden">Bekijk voorwaarden</a>
     </div>
   </div>
-
-</div><!-- einde pagina 1 -->
+</div>
 
 
 <!-- ════════════════════ PAGINA 2 ════════════════════ -->
