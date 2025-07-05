@@ -1,0 +1,4 @@
+streamlit
+weasyprint
+jinja2
+pandas
