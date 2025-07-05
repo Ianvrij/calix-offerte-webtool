@@ -4,18 +4,28 @@
 <meta charset="utf-8" />
 <title>Offerte Calix</title>
 
-<!-- ── Styling ─────────────────────────── -->
+<!-- ── Styling (gefixed voor correcte PDF-output) ─────────────────────────── -->
 <style>
-@page { size:A4; margin:0; }
+/* algemeen */
+@page { size: A4; margin: 0; }
 @font-face{font-family:'Clash Display';src:url('ClashDisplay-Regular.otf') format('opentype');font-weight:normal;}
 @font-face{font-family:'Clash Display';src:url('ClashDisplay-Bold.otf')    format('opentype');font-weight:bold;}
 @font-face{font-family:'Sansation';src:url('Sansation-Bold.ttf')           format('truetype');font-weight:bold;}
 
 body        { margin:0; padding:0; font-family:'Clash Display',sans-serif;
               font-size:12px; line-height:1.4; color:#333; }
-.page       { width:210mm; height:297mm; position:relative; overflow:hidden; }
-.section    { padding:0 60px 8px 60px; margin-bottom:0; }
 
+/* elke PDF-pagina */
+.page       { width:210mm;            /* A4-breedte  */
+              min-height:297mm;       /* A4-hoogte  – mag langer worden */
+              padding-bottom:60mm;    /* ruimte voor de footer          */
+              position:relative;
+              overflow:hidden;
+              break-after:page;       /* forceer page-break na elke .page */
+}
+.page:last-child{ break-after:auto; } /* geen lege laatste pagina */
+
+/* header */
 .header     { background:#E4B713; color:#fff; padding:10px 30px 80px 30px;
               clip-path:polygon(0 0,100% 0,100% 70%,0 100%); position:relative; }
 .header-top { display:flex; align-items:center; justify-content:space-between; }
@@ -26,9 +36,12 @@ body        { margin:0; padding:0; font-family:'Clash Display',sans-serif;
 .header-divider{ height:3px; background:#fff; width:100%; margin:0 0 30px; border-radius:2px; }
 .header h1  { font-size:26px; margin:0; font-weight:600; }
 
-.footer-fixed{ position:absolute; left:0; bottom:0; width:100%;
-               background:#E4B713; color:#fff; font-size:12px; padding:50px 0 30px;
-               clip-path:polygon(0 14%,100% 0%,100% 100%,0% 100%); z-index:10; }
+/* footer */
+.footer-fixed{ position:static;       /* uit de absolute flow – telt nu mee */
+               width:100%;
+               background:#E4B713; color:#fff; font-size:12px;
+               padding:50px 0 30px;
+               clip-path:polygon(0 14%,100% 0%,100% 100%,0% 100%); }
 .footer-cols{ display:flex; justify-content:space-between; max-width:960px;
               margin:0 auto; padding:0 40px; gap:40px; }
 .footer-col table{ width:100%; border-collapse:separate; border-spacing:0; }
@@ -39,6 +52,10 @@ body        { margin:0; padding:0; font-family:'Clash Display',sans-serif;
                 transition:opacity .3s ease; }
 .footer-note a:hover{ opacity:.8; }
 
+/* secties */
+.section    { padding:0 60px 8px 60px; margin-bottom:0; }
+
+/* tabel + totals */
 table      { width:100%; border-collapse:collapse; margin-top:10px; font-size:12px; }
 table.prod tr:nth-child(even){ background:#fafafa; }
 th,td      { padding:6px; border-bottom:1px solid #FFFFFF; }
@@ -50,41 +67,38 @@ th         { background:#f8f8f8; font-weight:600; text-align:left; }
 .totals-separator{ height:4px; background:#E4B713; width:100%; margin:4px 0; border-radius:2px; }
 .totalbar  { height:4px; background:#E4B713; width:44%; margin:4px 0 8px auto; border-radius:2px; }
 
+/* flex-blokken op pagina 2 */
 .flex-row-3{ display:flex; gap:20px; justify-content:space-between; margin-top:14px; }
 .flex-row-3>div{ flex:1; padding:12px; border-radius:6px; font-size:10px; }
 .flex-yellow{ background:#fff3cd; }
 .flex-gray { background:#f4f4f4; }
 </style>
-
-<!-- ── Automatisch printen bij openen ───── -->
-<script>
-window.onload = function() {
-    setTimeout(function() {
-        window.print();
-    }, 500);
-}
-</script>
-
 </head>
+
 <body>
 
-<!-- ═══════════ PAGINA 1 ═══════════ -->
+<!-- ════════════════════ PAGINA 1 ════════════════════ -->
 <div class="page">
-  <!-- header -->
+
+  <!-- header ------------------------------------------------------------------>
   <div class="header">
     <div class="header-top">
       <span class="header-brand">CALIX</span>
       <span class="header-text">HANDS FREE DANCING</span>
     </div>
     <div class="header-divider"></div>
+
     <img src="${IMG_SIO2}" alt="Calix" style="position:absolute;top:23px;right:40px;width:220px;" />
+
     <h1>Cupholder voor: ${KLANT}</h1>
-    <p>Offertenummer: ${OFFNR}<br />
-       Datum: ${DATUM} &nbsp;|&nbsp; Geldig tot: ${GELDIG}<br />
-       Adres: ${ADRES}</p>
+    <p>
+      Offertenummer: ${OFFNR}<br />
+      Datum: ${DATUM} &nbsp;|&nbsp; Geldig tot: ${GELDIG}<br />
+      Adres: ${ADRES}
+    </p>
   </div>
 
-  <!-- welkom -->
+  <!-- Welkom ------------------------------------------------------------------>
   <div class="section">
     <h2>Welkom!</h2>
     <p>Dank voor je interesse in onze duurzame bekerhouders. Met deze oplossing
@@ -92,22 +106,27 @@ window.onload = function() {
        blijvende herinnering.</p>
   </div>
 
-  <!-- toelichting -->
+  <!-- Toelichting ------------------------------------------------------------->
   <div class="section">
     <h2>Toelichting op de prijsindicatie</h2>
     <div style="background:#f9f9f9;padding:12px;border-radius:6px;">
       <ul>
         <li><b>Product:</b> Calix bekerhouder, uitgevoerd in één kleur.</li>
-        <li><b>Kleur:</b> Keuze uit zwart, rood, blauw of off-white. Andere kleuren mogelijk tegen een meerprijs van € 480.</li>
-        <li><b>Logo:</b> Gepersonaliseerd 3D-logo of tampondruk (logovlak: 6,5 × 2 cm).</li>
+        <li><b>Kleur:</b> Keuze uit zwart, rood, blauw of off-white. Andere
+            kleuren mogelijk tegen een meerprijs van € 480.</li>
+        <li><b>Logo:</b> Gepersonaliseerd 3D-logo of tampondruk
+            (logovlak: 6,5 × 2 cm).</li>
         <li><b>Kleurencombinatie bij tampondruk:</b> In overleg te bepalen.</li>
       </ul>
-      <p>Al onze producten worden met zorg ontworpen, geproduceerd en bedrukt in Nederland.</p>
-      <p><b>Disclaimer:</b> Aan deze prijsindicatie kunnen geen rechten worden ontleend.</p>
+      <p>Al onze producten worden met zorg ontworpen, geproduceerd en bedrukt
+         in Nederland, met aandacht voor kwaliteit, duurzaamheid en lokale
+         impact.</p>
+      <p><b>Disclaimer:</b> Aan deze prijsindicatie kunnen geen rechten worden
+         ontleend.</p>
     </div>
   </div>
 
-  <!-- productoverzicht -->
+  <!-- Productoverzicht -------------------------------------------------------->
   <div class="section">
     <h2>Productoverzicht</h2>
     <table class="prod">
@@ -133,7 +152,7 @@ window.onload = function() {
     </table>
   </div>
 
-  <!-- footer -->
+  <!-- footer ------------------------------------------------------------------>
   <div class="footer-fixed">
     <div class="footer-cols">
       <div class="footer-col">
@@ -161,12 +180,13 @@ window.onload = function() {
       </div>
     </div>
     <div class="footer-note">
-      Calix is een handelsnaam van Calix Promotie Producten V.O.F.  
-      Op deze aanbieding zijn onze leveringsvoorwaarden van toepassing.  
+      Calix is een handelsnaam van Calix Promotie Producten V.O.F.
+      Op deze aanbieding zijn onze leveringsvoorwaarden van toepassing.
       <a href="https://handsfreedancing.nl/voorwaarden">Bekijk voorwaarden</a>
     </div>
   </div>
-</div>
+
+</div><!-- einde pagina 1 -->
 
 
 <!-- ════════════════════ PAGINA 2 ════════════════════ -->
@@ -182,7 +202,7 @@ window.onload = function() {
 
     <img src="${IMG_SIO2}" alt="Calix" style="position:absolute;top:23px;right:40px;width:220px;" />
 
-    <h1>Visualisatie & Extra opties</h1>
+    <h1>Visualisatie &amp; Extra opties</h1>
     <p>
       Offertenummer: ${OFFNR}<br />
       Datum: ${DATUM} &nbsp;|&nbsp; Geldig tot: ${GELDIG}<br />
@@ -208,7 +228,7 @@ window.onload = function() {
         <ul><li>Leensysteem</li><li>Co-Branding</li></ul>
       </div>
       <div class="flex-gray">
-        <h3 style="margin-top:0;">Levertijd & verzending</h3>
+        <h3 style="margin-top:0;">Levertijd &amp; verzending</h3>
         <ul>
           <li>Productietijd circa 6 weken na akkoord</li>
           <li>Afleveradres dient goed bereikbaar te zijn</li>
@@ -234,7 +254,7 @@ window.onload = function() {
     </div>
   </div>
 
-  <!-- footer ------------------------------------------------------------------>
+  <!-- footer (zelfde als op pag 1) ------------------------------------------->
   <div class="footer-fixed">
     <div class="footer-cols">
       <div class="footer-col">
