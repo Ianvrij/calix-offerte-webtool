@@ -17,17 +17,25 @@ import io
 import streamlit as st
 
 
-# ──────────────────────────────── PDF back-end ──────────────────────────────
+# ──────────────────────────────── PDF back-end ─────────────────────────────
 def _detect_pdf_backend() -> str | None:
-    """'weasy'  |  'pisa'  |  None"""
+    """
+    'weasy'  |  'pisa'  |  None
+    Probeert óók even een dummy-render; zo vangen we ontbrekende
+    systeem-libs (pango/cairo) af nog vóór Streamlit crasht.
+    """
     try:
-        from weasyprint import HTML  # noqa: F401
+        from weasyprint import HTML                           # noqa
+        try:                                                 # ← nieuw
+            HTML(string="<b>test</b>").write_pdf()           # ← nieuw
+        except Exception:                                    # ← nieuw
+            raise ImportError                                # ← nieuw
         return "weasy"
-    except Exception:  # pragma: no cover
+    except Exception:                                        # pragma: no cover
         try:
-            from xhtml2pdf import pisa  # noqa: F401
+            from xhtml2pdf import pisa  # noqa
             return "pisa"
-        except Exception:              # pragma: no cover
+        except Exception:                                    # pragma: no cover
             return None
 
 
@@ -38,23 +46,26 @@ def html_to_pdf_bytes(html: str, base_dir: Path) -> bytes | None:
     """Render HTML → PDF (bytes).  Geeft None terug als geen backend beschikbaar is."""
     if PDF_BACKEND == "weasy":
         from weasyprint import HTML
-        # absolute base_url = map script → alle relative <img>, @font-face, …
-        return HTML(string=html, base_url=base_dir.as_uri()).write_pdf()
+        try:
+            return HTML(string=html, base_url=base_dir.as_uri()).write_pdf()
+        except Exception:
+            # WeasyPrint faalt alsnog → probeer pisã
+            pass                                             # ← nieuw
 
-    if PDF_BACKEND == "pisa":
-        from xhtml2pdf import pisa
-        result = io.BytesIO()
+    if PDF_BACKEND in (None, "pisa"):
+        try:
+            from xhtml2pdf import pisa
+            result = io.BytesIO()
 
-        # xhtml2pdf heeft eigen link_callback nodig voor lokale paths
-        def _link_cb(uri, rel):
-            # uri is het src/href attribuut; rel = None
-            p = (base_dir / uri).resolve()
-            return p.as_posix()
+            def _link_cb(uri, rel):
+                return (base_dir / uri).resolve().as_posix()
 
-        pisa.CreatePDF(io.StringIO(html), dest=result, encoding="utf-8", link_callback=_link_cb)
-        return result.getvalue()
+            pisa.CreatePDF(io.StringIO(html), dest=result, encoding="utf-8",
+                           link_callback=_link_cb)
+            return result.getvalue()
+        except Exception:                                    # pragma: no cover
+            return None
 
-    # geen backend → None
     return None
 
 
