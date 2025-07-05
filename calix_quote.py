@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
 calix_quote.py – Calix-offertegenerator (HTML + PDF)
+===================================================
 
-* Excel-formules herbouwd in Python
-* Output: HTML & PDF (Jinja2 + WeasyPrint)
-* Werkt als CLI én Streamlit-webapp
+Excel-logica herschreven in Python.
+Werkt als CLI én als Streamlit-webapp.
 """
 from __future__ import annotations
 import json, re, unicodedata, datetime as _dt, pathlib, sys, argparse
 from dataclasses import dataclass
 from typing import List, Dict
 
-# ───────────────── DATA-KLASSEN ─────────────────
+# ────────────── DATA­KLASSEN ──────────────
 @dataclass
 class OfferInput:
     quantity: int
     product_type: str          # "Bedrukt" | "3D-logo"
-    colours: int               # 1–3 (alleen bij Bedrukt)
+    colours: int               # 1..3 (bij Bedrukt)
     band_color: str            # "Standaard" | "Special"
     extra_increase_pct: float = 0.10
     discount_pct: float = 0.0
@@ -39,11 +39,10 @@ class OfferRow:
         detail = (f"{self.inp.colours}-kleur tampondruk – ontwerpcontrole"
                   if self.inp.product_type.lower()=="bedrukt"
                   else "3D-logo inbegrepen – ontwerpcontrole")
-        return {"qty":self.inp.quantity,"type":self.inp.product_type,
-                "colour":self.inp.band_color,"detail":detail,
-                "price":f"€ {self.price:.2f}","total":f"€ {self.total:.2f}"}
+        return {"qty":self.inp.quantity,"type":self.inp.product_type,"colour":self.inp.band_color,
+                "detail":detail,"price":f"€ {self.price:.2f}","total":f"€ {self.total:.2f}"}
 
-# ───────────────── TEMPLATE ─────────────────
+# ────────────── TEMPLATE ──────────────
 _slug = lambda s: re.sub(r"[^a-z0-9_-]+","_", unicodedata.normalize("NFKD",s)
                          .encode("ascii","ignore").decode()).strip("_") or "offerte"
 
@@ -94,13 +93,13 @@ TEMPLATE = """<!DOCTYPE html>
  <div class="section"><div class="totals-sep"></div>
   <p style="text-align:right">
    Totaal excl.: € {{ '%.2f' % excl }}<br>
-   BTW 21%: € {{ '%.2f' % tax }}<br>
+   BTW&nbsp;21%: € {{ '%.2f' % tax }}<br>
    <strong>Totaal incl.: € {{ '%.2f' % incl }}</strong>
   </p></div>
 </div></body></html>"""
 TEMPLATE_OBJ = env.from_string(TEMPLATE)
 
-# ───────────────── PRIJS-TABELLEN (dummy) ─────────────────
+# ────────────── PRIJS-TABELLEN (dummy) ──────────────
 OFF_GEBREMA  = {"<3000":0.30,"<10000":0.28,"<100000":0.26,"otherwise":0.24}
 EXTRA_KOSTEN = {"transport":150,"special":480}
 ARTISAN = [
@@ -118,7 +117,7 @@ def _artisan(q:int, colours:int)->float:
     for upper, prices in ARTISAN:
         if q <= upper:
             return prices[colours-1]
-    raise ValueError("Aantal buiten Artisan-range")
+    raise ValueError("Aantal buiten Artisan-staffel")
 
 def unit_cost(inp:OfferInput)->float:
     cost = _spuitgiet(inp.quantity, inp.product_type, inp.special_band())
@@ -129,20 +128,20 @@ def unit_cost(inp:OfferInput)->float:
     return round(cost, 4)
 
 def unit_price(cost:float, inp:OfferInput)->float:
-    return round(cost * (1 + inp.extra_increase_pct) * (1 - inp.discount_pct), 4)
+    return round(cost * (1+inp.extra_increase_pct) * (1-inp.discount_pct), 4)
 
 # ────────────── HTML & PDF ──────────────
 def build_html(client:ClientInfo, rows:List[OfferRow]) -> str:
     excl = sum(r.total for r in rows)
-    tax  = round(excl * 0.21, 2)
-    incl = round(excl + tax, 2)
+    tax  = round(excl*0.21, 2)
+    incl = round(excl+tax, 2)
     return TEMPLATE_OBJ.render(
         client  = client,
         rows    = [r.html() for r in rows],
         today   = _dt.date.today().strftime("%d-%m-%Y"),
         valid   = (_dt.date.today()+_dt.timedelta(days=14)).strftime("%d-%m-%Y"),
         special = any(r.inp.special_band() for r in rows),
-        ship    = any(r.inp.quantity > 10000 for r in rows),
+        ship    = any(r.inp.quantity>10000 for r in rows),
         excl=excl, tax=tax, incl=incl
     )
 
@@ -182,14 +181,14 @@ def gui():
     st.set_page_config(page_title="Calix offerte", page_icon="📄", layout="wide")
     st.title("Calix offerte generator")
 
-    # Klantgegevens
+    # Klant
     with st.sidebar:
         name    = st.text_input("Naam klant")
         address = st.text_input("Adres")
         nr      = st.text_input("Offertenummer")
         variants= st.number_input("Aantal varianten", 1, 5, 1)
 
-    # Varianten invoer
+    # Variants
     offers=[]
     for i in range(int(variants)):
         with st.expander(f"Variant {i+1}", expanded=True):
@@ -202,7 +201,6 @@ def gui():
             offers.append(dict(quantity=int(q), product_type=t, colours=int(cols),
                                band_color=band, extra_increase_pct=up, discount_pct=disc))
 
-    # Genereren
     if st.button("Genereer offerte"):
         if not (name and address and nr):
             st.error("Vul eerst alle klantgegevens in."); st.stop()
