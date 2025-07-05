@@ -20,15 +20,16 @@ import streamlit as st               #  pip install streamlit
 
 import pdfkit
 
+@st.cache_resource
 def html_to_pdf_bytes(html: str) -> bytes | None:
     try:
-        from weasyprint import HTML
+        from weasyprint import HTML, __version__ as wv
+        st.write(f"PDF-engine: WeasyPrint {wv}")   # zichtbaar in de app
         return HTML(string=html, base_url=".").write_pdf()
-    except Exception:
-        try:
-            return pdfkit.from_string(html, False)
-        except Exception:
-            return None
+    except Exception as e:
+        st.exception(e)   # toont fout in UI, geen app-crash
+        return None
+
 
 
 # ────────────────────────────────────────────────────────────────────────────
