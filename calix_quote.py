@@ -1,159 +1,183 @@
-# calix_offerte_app.py – DEEL 1
+# calix_quote.py  –  DEEL 1
 import streamlit as st
-import base64
-import tempfile
-import os
-from datetime import datetime
-
-# HTML-bestand opslaan
-def html_to_file(html_string, output_path):
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(html_string)
-
-# Downloadlink genereren
-def get_html_download_link(file_path, filename="offerte.html"):
-    with open(file_path, "r", encoding="utf-8") as f:
-        html_content = f.read()
-    b64 = base64.b64encode(html_content.encode("utf-8")).decode()
-    href = f'<a href="data:text/html;base64,{b64}" download="{filename}">📥 Download offerte als HTML-bestand</a>'
-    return href
+import pandas as pd
+import base64, tempfile, os
+from datetime import date, timedelta, datetime
 
 st.set_page_config(page_title="Calix Offerte Tool", layout="wide")
 st.title("🧾 Calix Offerte Generator")
 
-# Offerte-informatie
-st.header("📋 Algemene gegevens")
+# ---------- helpers ----------
+SPECIAL_KLEUR_TOESLAG = 480.0
+VERZEND_TOESLAG       = 150.0          # bij > 9 999 stuks
+BTW_PCT               = 0.21
+
+def save_html(html: str, path: str):
+    with open(path, "w", encoding="utf-8") as f: f.write(html)
+
+def dl_link(path: str, fname: str) -> str:
+    with open(path, "r", encoding="utf-8") as f:
+        b64 = base64.b64encode(f.read().encode()).decode()
+    return f'<a href="data:text/html;base64,{b64}" download="{fname}">📥 Download offerte</a>'
+
+# ---------- Hoofdgegevens ----------
+st.header("📋 Hoofd­berekening")
 col1, col2 = st.columns(2)
 with col1:
-    klantnaam = st.text_input("Naam klant", "TU/e Go Green Office")
-    offertenummer = st.text_input("Offertenummer", "CALX-2025-001")
+    klantnaam  = st.text_input("Naam klant")
+    adres      = st.text_input("Adres")
+    off_nr     = st.text_input("Offertenummer")
 with col2:
-    datum = st.date_input("Datum offerte", value=datetime.today())
-    aantal_opties = st.selectbox("Aantal productopties", [1, 2, 3, 4], index=1)
-    verzendkosten = st.number_input("Verzendkosten (€)", value=15.0)
+    aantal_h   = st.number_input("Aantal (optie 1)",  min_value=1, value=1000)
+    type_h     = st.selectbox("Type", ["Bedrukt", "3D-logo"])
+    kleur_h    = st.text_input("Kleur bandje", "Zwart")
+    kleuren_h  = st.selectbox("Aantal kleuren (bij Bedrukt)", [1,2,3], disabled=(type_h!="Bedrukt"))
 
-toelichting = st.text_area("Toelichting offerte", "Bedankt voor jullie interesse in onze herbruikbare producten...")
-# calix_offerte_app.py – DEEL 2
+opties_aantal = st.selectbox("Aantal opties (1–4)", [1,2,3,4], index=0)
+extra_pct     = st.number_input("Verhoging (Extra %)", 0.0, 1.0, 0.10, 0.01)
+korting_pct   = st.number_input("Korting (%)",         0.0, 1.0, 0.00, 0.01)
+# calix_quote.py  –  DEEL 2
+st.header("🔄 Extra opties")
+opties = []
+for i in range(2, opties_aantal+1):
+    st.subheader(f"Optie {i}")
+    c1,c2,c3,c4,c5 = st.columns(5)
+    with c1:
+        aant = st.number_input(f"Aantal optie {i}", min_value=1, value=500, key=f"a_{i}")
+    with c2:
+        t    = st.selectbox(f"Type optie {i}", ["Bedrukt","3D-logo"], key=f"t_{i}")
+    with c3:
+        clr  = st.text_input(f"Kleur optie {i}", "Standaard", key=f"k_{i}")
+    with c4:
+        kls  = st.selectbox(f"Kleuren optie {i}", [1,2,3], key=f"c_{i}", disabled=(t!="Bedrukt"))
+    with c5:
+        krn  = st.number_input(f"Korting optie {i} (%)", 0.0,1.0,0.0,0.01, key=f"disc_{i}")
+    opties.append(dict(aantal=aant, type=t, kleur=clr, kleuren=kls, korting=krn))
+# calix_quote.py  –  DEEL 3
+# 1) helpers voor regels
+def prijsregel(aantal, type_, kleur, kleuren, verhoging, korting):
+    """geeft tuple (beschrijving, prijs_stuk, subtotal_excl)"""
+    # ↓ sterk vereenvoudigde kostprijs → verkoopprijs formule
+    base = 2.0 if type_=="3D-logo" else 2.2 + 0.2*(kleuren-1)
+    verkoop = base * (1+verhoging) * (1-korting)
+    toeslag  = SPECIAL_KLEUR_TOESLAG if kleur.lower()=="special" else 0
+    subtotal = aantal * verkoop + toeslag
+    detail   = (f"{kleuren}-kleur tampondruk" if type_.lower()=="bedrukt"
+                else "3D-logo inbegrepen") + ", Inclusief ontwerpcontrole"
+    return detail, verkoop, subtotal, toeslag
 
-st.header("🎨 Productopties")
-productopties = []
+# 2) eerste (hoofd) optie
+producten = []
+detail, prijs_stuk, subtotal, toeslag  = prijsregel(
+        aantal_h, type_h, kleur_h, int(kleuren_h or 0),
+        extra_pct, korting_pct)
+producten.append(dict(aantal=aantal_h, type=type_h, kleur=kleur_h,
+                      detail=detail, prijs=prijs_stuk, subt=subtotal,
+                      toeslag=toeslag))
 
-for i in range(1, aantal_opties + 1):
-    st.subheader(f"🔹 Optie {i}")
-    col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
-    with col1:
-        product = st.text_input(f"Producttype optie {i}", key=f"product_{i}", value=f"Herbruikbare bekerhouder")
-    with col2:
-        kleur = st.text_input(f"Kleur optie {i}", key=f"kleur_{i}", value="Zwart")
-    with col3:
-        aantal = st.number_input(f"Aantal optie {i}", key=f"aantal_{i}", min_value=1, step=1, value=100)
-    with col4:
-        prijs_per_stuk = st.number_input(f"Prijs/stuk optie {i} (€)", key=f"prijs_{i}", value=2.95)
+# 3) extra opties
+for o in opties:
+    d,p,s,t = prijsregel(o["aantal"], o["type"], o["kleur"], o["kleuren"],
+                         extra_pct, o["korting"])
+    producten.append(dict(aantal=o["aantal"], type=o["type"], kleur=o["kleur"],
+                          detail=d, prijs=p, subt=s, toeslag=t))
 
-    # Kleurtoeslag indien niet zwart
-    kleurtoeslag = 0.20 if kleur.lower() != "zwart" else 0.00
-    totaalprijs = aantal * (prijs_per_stuk + kleurtoeslag)
+# 4) verzend­toeslag
+verzend = VERZEND_TOESLAG if any(p["aantal"]>9999 for p in producten) else 0
 
-    productopties.append({
-        "product": product,
-        "kleur": kleur,
-        "aantal": aantal,
-        "prijs_per_stuk": prijs_per_stuk,
-        "kleurtoeslag": kleurtoeslag,
-        "subtotaal": totaalprijs
-    })
+totaal_ex  = sum(p["subt"] for p in producten) + verzend
+btw        = totaal_ex * BTW_PCT
+totaal_in  = totaal_ex + btw
+geldigheid = (date.today()+timedelta(days=14)).strftime("%d-%m-%Y")
+vandaag    = date.today().strftime("%d-%m-%Y")
 
-# Totaalprijs berekenen
-totaal_ex_btw = sum(p["subtotaal"] for p in productopties) + verzendkosten
-btw = 0.21 * totaal_ex_btw
-totaal_incl_btw = totaal_ex_btw + btw
-# calix_offerte_app.py – DEEL 3
+# ---------- HTML ----------
+rows_html = ""
+for p in producten:
+    rows_html += f"""
+       <tr><td>{p['aantal']}</td><td>{p['type']}</td><td>{p['kleur']}</td>
+           <td>{p['detail']}</td><td style='text-align:right'>€ {p['prijs']:.2f}</td>
+           <td style='text-align:right'>€ {p['subt']:.2f}</td></tr>"""
 
-# HTML-offerte samenstellen
-html_string = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <style>
-        body {{ font-family: Arial, sans-serif; padding: 40px; }}
-        h1 {{ color: #2B2B2B; }}
-        table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th {{ background-color: #f2f2f2; }}
-        .footer {{ font-size: 10px; text-align: center; margin-top: 50px; color: gray; }}
-    </style>
-</head>
-<body>
-    <h1>Offerte</h1>
-    <p><strong>Klant:</strong> {klantnaam}<br>
-    <strong>Offertenummer:</strong> {offertenummer}<br>
-    <strong>Datum:</strong> {datum.strftime('%d-%m-%Y')}</p>
+if verzend:
+    rows_html += f"""
+       <tr><td>1</td><td>Verzendkosten</td><td>–</td>
+           <td>Extra kosten voor zending</td>
+           <td style='text-align:right'>€ {verzend:.2f}</td>
+           <td style='text-align:right'>€ {verzend:.2f}</td></tr>"""
 
-    <h2>Toelichting</h2>
-    <p>{toelichting}</p>
+html_body = f"""
+<!DOCTYPE html><html lang='nl'><head><meta charset='utf-8'>
+<title>Offerte Calix</title>
+<style>
+@page{{size:A4;margin:0;}}
+body{{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;}}
+.page{{width:210mm;height:297mm;position:relative;overflow:hidden;}}
+.header{{background:#E4B713;color:#fff;padding:20px 40px;clip-path:polygon(0 0,100% 0,100% 75%,0 100%);}}
+.section{{padding:20px 60px;}}
+.footer-fixed{{position:absolute;bottom:0;width:100%;background:#E4B713;color:#fff;padding:25px 0;font-size:10px;text-align:center;}}
+table{{width:100%;border-collapse:collapse;}}
+th,td{{border-bottom:1px solid #ddd;padding:6px;}}
+th{{background:#f2f2f2;text-align:left;}}
+</style></head><body>
 
-    <h2>Productopties</h2>
-    <table>
-        <tr>
-            <th>Optie</th>
-            <th>Product</th>
-            <th>Kleur</th>
-            <th>Aantal</th>
-            <th>Prijs/stuk (€)</th>
-            <th>Kleurtoeslag (€)</th>
-            <th>Subtotaal (€)</th>
-        </tr>
+<div class='page'>
+ <div class='header'>
+   <h1>CALIX | Hands Free Dancing</h1>
+   <h2 style='margin:0'>Cupholder voor: {klantnaam}</h2>
+   Offertenummer {off_nr} | Datum {vandaag} | Geldig tot {geldigheid}<br>
+   Adres: {adres}
+ </div>
+
+ <div class='section'><h2>Welkom!</h2>
+   Dank voor je interesse in onze duurzame bekerhouders.<br>
+   Met deze oplossing verlaag je de afvalstroom én geef je bezoekers een blijvende herinnering.
+ </div>
+
+ <div class='section'><h2>Productoverzicht</h2>
+   <table><tr>
+        <th>Aantal</th><th>Type</th><th>Kleur</th>
+        <th>Details</th><th style='text-align:right'>Prijs/stuk</th>
+        <th style='text-align:right'>Totaal excl.</th></tr>
+        {rows_html}
+   </table>
+   <p style='text-align:right;margin-top:15px'>
+      Verzendkosten: € {verzend:.2f}<br>
+      <b>Totaal excl. btw: € {totaal_ex:.2f}</b><br>
+      BTW 21 %: € {btw:.2f}<br>
+      <span style='font-size:14px'><b>Totaal incl. btw: € {totaal_in:.2f}</b></span>
+   </p>
+ </div>
+
+ <div class='footer-fixed'>
+   Calix Promotie Producten V.O.F. – Bieze 23, 5382 KZ Vinkel – info@handsfreedancing.nl
+ </div>
+</div>
+
+<!-- Pagina 2 -->
+<div class='page'>
+ <div class='header'><h1>Visualisatie & Extra opties</h1></div>
+ <div class='section' style='text-align:center'>
+   <img src='https://via.placeholder.com/240x240?text=Mock-up+1' width='240'>
+   <img src='https://via.placeholder.com/240x240?text=Mock-up+2' width='240'>
+ </div>
+ <div class='footer-fixed'>
+   Calix Promotie Producten – KvK 86614472 | IBAN NL04 RABO 0383 2726 88
+ </div>
+</div>
+
+</body></html>
 """
+# calix_quote.py  –  DEEL 4
+# 1) opslaan
+tmpdir   = tempfile.gettempdir()
+fname    = f"offerte_{klantnaam.lower().replace(' ','_')}_{off_nr}.html"
+fpath    = os.path.join(tmpdir, fname)
+save_html(html_body, fpath)
 
-for i, optie in enumerate(productopties, start=1):
-    html_string += f"""
-    <tr>
-        <td>Optie {i}</td>
-        <td>{optie['product']}</td>
-        <td>{optie['kleur']}</td>
-        <td>{optie['aantal']}</td>
-        <td>{optie['prijs_per_stuk']:.2f}</td>
-        <td>{optie['kleurtoeslag']:.2f}</td>
-        <td>{optie['subtotaal']:.2f}</td>
-    </tr>
-    """
+# 2) UI
+st.success("Offerte berekend ✔")
+st.markdown(dl_link(fpath, fname), unsafe_allow_html=True)
 
-html_string += f"""
-    </table>
-
-    <h2>Prijsopbouw</h2>
-    <p>Verzendkosten: € {verzendkosten:.2f}<br>
-    Totaal excl. BTW: € {totaal_ex_btw:.2f}<br>
-    BTW (21%): € {btw:.2f}<br>
-    <strong>Totaal incl. BTW: € {totaal_incl_btw:.2f}</strong></p>
-
-    <div class="footer">
-        Calix Promotie Producten – Samen naar een circulaire festivalbeleving
-    </div>
-</body>
-</html>
-"""
-# calix_offerte_app.py – DEEL 4
-
-st.header("📄 Offerte genereren")
-
-# Tijdelijke HTML-bestand opslaan
-temp_dir = tempfile.gettempdir()
-klantnaam_schoon = klantnaam.lower().replace(" ", "_").replace(",", "").replace(".", "")
-html_filename = f"offerte_{klantnaam_schoon}_{offertenummer}.html"
-html_path = os.path.join(temp_dir, html_filename)
-
-try:
-    html_to_file(html_string, html_path)
-    st.success("✅ Offerte succesvol gegenereerd!")
-except Exception as e:
-    st.error(f"❌ Fout bij genereren: {e}")
-
-# Downloadlink + Preview
-st.markdown("---")
-st.markdown("### 📥 Download Offerte")
-st.markdown(get_html_download_link(html_path, html_filename), unsafe_allow_html=True)
-
-with st.expander("📄 Bekijk voorbeeld", expanded=False):
-    st.components.v1.html(html_string, height=600, scrolling=True)
+with st.expander("📄 HTML-voorbeeld"):
+    st.components.v1.html(html_body, height=700, scrolling=True)
