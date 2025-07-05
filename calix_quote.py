@@ -167,7 +167,6 @@ today = datetime.now().strftime("%d-%m-%Y")
 geldigheid = (datetime.now() + timedelta(days=14)).strftime("%d-%m-%Y")
 
 html_rows_str = "".join(html_rows)
-html_template = Path(__file__).with_name("template.html").read_text()
 
 html_filled = html_template.format(
     KLANT=klantnaam,
@@ -180,6 +179,42 @@ html_filled = html_template.format(
     BTW=money(btw),
     TOTAALINC=money(totaal_inc)
 )
+HTML_TEMPLATE = r"""
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Offerte Calix</title>
+<style>
+/* … ALLE CSS UIT VBA … */
+</style>
+</head>
+<body>
+
+<!-- Pagina 1 -->
+<div class='page'>
+  <div class='header'>
+    … alles uit VBA …
+  </div>
+  <!-- tabel -->
+  <div class='section'>
+    <h2>Productoverzicht</h2>
+    <table class='prod'>
+      {PRODUCTROWS}
+    </table>
+  </div>
+  … footer pagina 1 …
+</div>
+
+<!-- Pagina 2 -->
+<div class='page'>
+  … tweede pagina …
+</div>
+
+</body>
+</html>
+"""
+
 
 # ---- Toon & download ------------------------------------ #
 st.markdown("### Voorvertoning")
