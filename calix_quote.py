@@ -1,233 +1,115 @@
-import base64
-from pathlib import Path
+import streamlit as st
 from datetime import datetime, timedelta
 from string import Template
 from decimal import Decimal, ROUND_HALF_UP
-import io
+import base64
+from pathlib import Path
 
-import streamlit as st
-from weasyprint import HTML
+@st.cache_resource
+def html_to_pdf_bytes(html: str) -> bytes | None:
+    try:
+        from weasyprint import HTML, __version__ as WV
+        st.write(f"PDF-engine: WeasyPrint {WV}")
+        return HTML(string=html, base_url=".").write_pdf()
+    except Exception as e:
+        st.exception(e)
+        return None
 
-
-# ────────────────────────────────────────────────────────────────────────────
-# Helpers for WeasyPrint and HTML
-# ---------------------------------------------------------------------------
 def eur(val: float | Decimal) -> str:
-    """€-notation with commas for decimal and periods for thousands."""
+    """€-notatie met , als decimaalteken en . als duizend-scheiding."""
     q = Decimal(val).quantize(Decimal("0.01"), ROUND_HALF_UP)
     return f"€ {q:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-
-def tampon_omschrijving(kleuren: int) -> str:
-    return ("1-kleur" if kleuren == 1 else f"{kleuren}-kleuren") + \
-           " tampondruk, Inclusief Ontwerpcontrole"
-
-
 def b64_img(filename: str) -> str:
-    """Provide a data URI for a local image; works everywhere (also Streamlit Cloud)."""
+    """Geef data-URI voor lokaal plaatje; werkt overal (ook Streamlit Cloud)."""
     p = Path(__file__).with_name(filename)
     mime = "image/png" if filename.lower().endswith("png") else "image/jpeg"
     data = base64.b64encode(p.read_bytes()).decode()
     return f"data:{mime};base64,{data}"
 
+# Streamlit Interface
+st.set_page_config(page_title="Calix Offertegenerator", layout="centered")
+st.title("Calix – Offertegenerator")
 
-def html_to_pdf_bytes(html: str) -> bytes | None:
-    try:
-        st.write(f"PDF-engine: WeasyPrint")   # Visible in the app log
-        return HTML(string=html, base_url=".").write_pdf()
-    except Exception as e:
-        st.exception(e)        # Display error message without app crash
-        return None
+# Input voor klantgegevens
+klant = st.text_input("Naam klant")
+adres = st.text_input("Adres")
+offnr = st.text_input("Offertenummer")
+aantal = st.number_input("Aantal", min_value=1, value=1000)
+product_type = st.selectbox("Type", ["Bedrukt", "3D-logo"])
+kleuren_aantal = st.selectbox("Aantal kleuren", [1, 2, 3], disabled=(product_type != "Bedrukt"))
+kleur_bandje = st.selectbox("Kleur bandje", ["Standaard", "Special", "Zwart", "Off White", "Blauw", "Rood"])
+korting_pct = st.number_input("Korting (%)", 0.0, 100.0, 0.0)
+verhoging_pct = st.number_input("Verhoging extra (%)", 0.0, 100.0, 10.0)
 
+opties_aantal = st.number_input("Aantal extra opties (0–3)", 0, 3, 0)
 
-# ────────────────────────────────────────────────────────────────────────────
-# Template HTML structure
-# ---------------------------------------------------------------------------
-html_template = """
-<!DOCTYPE html>
-<html lang="nl">
-<head>
-    <meta charset="utf-8" />
-    <title>Offerte Calix</title>
-    <style>
-        @page {
-            size: A4;
-            margin: 0;
-        }
-        body {
-            font-family: 'Clash Display', sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-        .page {
-            width: 210mm;
-            height: 297mm;
-            position: relative;
-            overflow: hidden;
-        }
-        .header {
-            background: #E4B713;
-            color: #fff;
-            padding: 10px 30px;
-            clip-path: polygon(0 0, 100% 0, 100% 70%, 0 100%);
-            position: relative;
-        }
-        .header-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .header h1 {
-            font-size: 26px;
-            font-weight: 600;
-            margin: 0;
-        }
-        .footer-fixed {
-            position: absolute;
-            left: 0;
-            bottom: 0;
-            width: 100%;
-            background: #E4B713;
-            color: #fff;
-            font-size: 12px;
-            padding: 50px 0 30px;
-            clip-path: polygon(0 14%, 100% 0%, 100% 100%, 0% 100%);
-            z-index: 10;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 12px;
-        }
-        table.prod tr:nth-child(even) {
-            background: #fafafa;
-        }
-        th, td {
-            padding: 6px;
-            border-bottom: 1px solid #FFFFFF;
-        }
-        th {
-            background: #f8f8f8;
-            font-weight: 600;
-            text-align: left;
-        }
-        .totals td {
-            background: none;
-            padding: 2px 0;
-        }
-        .totals .label {
-            text-align: right;
-            width: 70%;
-            padding-right: 0;
-        }
-        .totals .value {
-            text-align: right;
-        }
-        .total-bold {
-            font-weight: bold;
-        }
-        .totals-separator {
-            height: 4px;
-            background: #E4B713;
-            width: 100%;
-            margin: 4px 0;
-            border-radius: 2px;
-        }
-        .totalbar {
-            height: 4px;
-            background: #E4B713;
-            width: 44%;
-            margin: 4px 0 8px auto;
-            border-radius: 2px;
-        }
-    </style>
-</head>
-<body>
-    <div class="page">
-        <div class="header">
-            <div class="header-top">
-                <span class="header-brand">CALIX</span>
-                <span class="header-text">HANDS FREE DANCING</span>
-            </div>
-            <h1>Offerte voor: ${KLANT}</h1>
-            <p>Offertenummer: ${OFFNR} | Datum: ${DATUM} | Geldig tot: ${GELDIG}</p>
-            <p>Adres: ${ADRES}</p>
-        </div>
-        <div class="section">
-            <h2>Welkom!</h2>
-            <p>Dank voor je interesse in onze duurzame bekerhouders...</p>
-        </div>
-        <div class="section">
-            <h2>Toelichting op de prijsindicatie</h2>
-            <div style="background:#f9f9f9;padding:12px;border-radius:6px;">
-                <ul>
-                    <li><b>Product:</b> Calix bekerhouder, uitgevoerd in één kleur.</li>
-                    <li><b>Kleur:</b> Keuze uit zwart, rood, blauw of off-white.</li>
-                    <li><b>Logo:</b> Gepersonaliseerd 3D-logo of tampondruk (logovlak: 6,5 × 2 cm).</li>
-                </ul>
-                <p><b>Disclaimer:</b> Aan deze prijsindicatie kunnen geen rechten worden ontleend.</p>
-            </div>
-        </div>
-        <div class="section">
-            <h2>Productoverzicht</h2>
-            <table class="prod">
-                <tr>
-                    <th>Aantal</th><th>Type</th><th>Kleur</th><th>Details</th><th style="text-align:right;">Prijs/stuk</th><th style="text-align:right;">Totaal excl. btw</th>
-                </tr>
-                ${PRODUCTROWS}
-            </table>
-            <div class="totals-separator"></div>
-            <table class="totals">
-                <tr><td class="label">Totaal excl. btw:</td><td class="value">${TOTALEXCL}</td></tr>
-                <tr><td class="label">BTW (21%):</td><td class="value">${BTW}</td></tr>
-            </table>
-            <div class="totalbar"></div>
-            <table class="totals">
-                <tr><td class="label total-bold">Totaal incl. btw:</td><td class="value total-bold">${TOTAALINC}</td></tr>
-            </table>
-        </div>
-        <div class="footer-fixed">
-            <div class="footer-cols">
-                <div class="footer-col">
-                    <table>
-                        <tr><td>Adres</td><td>Bieze 23</td></tr>
-                        <tr><td></td><td>5382 KZ Vinkel</td></tr>
-                        <tr><td>Telefoon</td><td>+31 (0)6 29 83 0517</td></tr>
-                    </table>
-                </div>
-                <div class="footer-col">
-                    <table>
-                        <tr><td>E-mail</td><td><a href="mailto:info@handsfreedancing.nl">info@handsfreedancing.nl</a></td></tr>
-                        <tr><td>Website</td><td><a href="https://handsfreedancing.nl">handsfreedancing.nl</a></td></tr>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
-"""
+# Extra opties
+extra_opties = []
+if opties_aantal:
+    for i in range(1, opties_aantal + 1):
+        a = st.number_input(f"Aantal voor optie {i}", 1, key=f"opt_aantal_{i}")
+        t = st.selectbox(f"Type voor optie {i}", ["Bedrukt", "3D-logo"], key=f"opt_type_{i}")
+        kc = st.selectbox(f"Kleuren voor optie {i}", [1, 2, 3], disabled=(t != "Bedrukt"), key=f"opt_kc_{i}")
+        kband = st.selectbox(f"Bandje-kleur voor optie {i}", ["Standaard", "Special", "Zwart", "Off White", "Blauw", "Rood"], key=f"opt_band_{i}")
+        kort = st.number_input(f"Korting voor optie {i} (%)", 0.0, 100.0, 0.0, key=f"opt_kort_{i}")
+        extra_opties.append(dict(aantal=a, type=t, kleuren=kc, band=kband, korting=kort))
 
-# Load and replace placeholders
-html_out = Template(html_template).safe_substitute(
-    KLANT="Test Klant",
-    OFFNR="12345",
+# Prijsberekeningen
+def kostprijs(typ: str, aant: int, kl: int) -> float:
+    prijs = {
+        "3D": {1000: 2.79, 2000: 1.63, 5000: 1.09, 7500: 0.97, 10000: 0.91, 50000: 0.75},
+        "Bedrukt1": {1000: 2.07, 2000: 1.94, 5000: 1.38, 7500: 1.36, 10000: 1.27, 50000: 1.20},
+    }
+    key = "3D" if typ == "3D-logo" else f"Bedrukt{kl}"
+    staffels = sorted(prijs["3D"])
+    return prijs[key][min(staffels, key=lambda x: abs(x - aant))]
+
+def verkoopprijs(kost: float, verh: float, kort: float) -> float:
+    return kost * (1 + verh / 100) * (1 - kort / 100)
+
+# Vul HTML-template in
+template_path = Path(__file__).with_name("template.html")
+template = Template(template_path.read_text(encoding="utf-8"))
+
+# Berekeningen voor de hoofdlijn
+rows = []
+total_excl = Decimal(0)
+
+def append_row(aantal, t, kband, stprijs, oms):
+    global total_excl
+    rows.append(f"""
+<tr><td>{aantal}</td><td>{t}</td><td>{kband}</td>
+<td>{oms}</td><td style="text-align:right;">{eur(stprijs)}</td>
+<td style="text-align:right;">{eur(stprijs * aantal)}</td></tr>""")
+    total_excl += Decimal(stprijs * aantal)
+
+# Hoofdoptie toevoegen
+kp = kostprijs(product_type, aantal, kleuren_aantal)
+vp = verkoopprijs(kp, verhoging_pct, korting_pct)
+omschrijving = "1-kleur tampondruk" if product_type == "Bedrukt" else "3D-logo inbegrepen"
+append_row(aantal, product_type, kleur_bandje, vp, omschrijving)
+
+# HTML genereren
+html_out = template.safe_substitute(
+    KLANT=klant or "–",
+    ADRES=adres or "–",
+    OFFNR=offnr or "–",
     DATUM=datetime.now().strftime("%d-%m-%Y"),
     GELDIG=(datetime.now() + timedelta(days=14)).strftime("%d-%m-%Y"),
-    ADRES="Bieze 23, 5382 KZ Vinkel",
-    PRODUCTROWS="..."  # Add product rows here dynamically
+    PRODUCTROWS="".join(rows),
+    TOTALEXCL=eur(total_excl),
+    BTW=eur(total_excl * Decimal("0.21")),
+    TOTAALINC=eur(total_excl + total_excl * Decimal("0.21")),
+    **img_dict,
 )
 
-# Generate PDF
-pdf_data = html_to_pdf_bytes(html_out)
+# HTML-weergave en download
+st.download_button("Download HTML", html_out, file_name="offerte.html", mime="text/html")
+st.components.v1.html(html_out, height=800, scrolling=True)
 
-# Provide download options in Streamlit
+pdf_data = html_to_pdf_bytes(html_out)
 if pdf_data:
     st.download_button("Download PDF", pdf_data, file_name="offerte.pdf", mime="application/pdf")
 else:
-    st.info("PDF-backend niet beschikbaar. Download de HTML en print die in je browser naar PDF.")
-
+    st.info("PDF-backend niet beschikbaar.")
