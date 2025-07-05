@@ -127,16 +127,23 @@ with c1:
     offnr = st.text_input("Offertenummer")
     aantal = st.number_input("Aantal", 1, value=1000)
 
+# ── HOOFDOPTIE (kolom B) ─────────────────────────────────────────────
 with c2:
     product_type = st.selectbox("Type", ["Bedrukt", "3D-logo"])
-    kleuren_aantal = st.selectbox("Aantal kleuren", [0, 1, 2, 3],
-                                  disabled=(product_type == "3D-logo"))
+
+    # ↓ alleen 1-3 tonen als Bedrukt, anders 0 tonen maar disabled
+    if product_type == "Bedrukt":
+        kleuren_aantal = st.selectbox("Aantal kleuren", [1, 2, 3])
+    else:
+        kleuren_aantal = 0          # 3D-logo heeft geen kleuren
+
     kleur_bandje = st.selectbox(
         "Kleur bandje",
         ["Standaard", "Special", "Zwart", "Off White", "Blauw", "Rood"]
     )
-    korting_pct = st.number_input("Korting (%)", 0.0, 100.0, 0.0)
-    verhoging_pct = st.number_input("Verhoging extra (%)", 0.0, 100.0, 10.0)
+    korting_pct  = st.number_input("Korting (%)", 0.0, 100.0, 0.0)
+    verhoging_pct= st.number_input("Verhoging extra (%)", 0.0, 100.0, 10.0)
+
 
 opties_aantal = st.number_input("Aantal extra opties (0-3)", 0, 3, 0)
 
@@ -187,8 +194,13 @@ def _staf(a: int) -> int:
 
 
 def kostprijs(typ: str, aant: int, kl: int) -> float:
-    key = "3D" if typ == "3D-logo" else f"Bedrukt{kl}"
+    if typ == "3D-logo":
+        key = "3D"
+    else:                      # Bedrukt
+        kl = max(1, min(kl, 3))    # forceer 1-3
+        key = f"Bedrukt{kl}"
     return tab[key][_staf(aant)]
+
 
 
 def verkoopprijs(kost: float, verh: float, kort: float) -> float:
