@@ -1,3 +1,5 @@
-
 streamlit
-pyppeteer
+pyppeteer          # headless-Chrome
+weasyprint       # optioneel, als je wél libpango kunt installeren
+pdfkit           # optioneel, vereist wkhtmltopdf
+xhtml2pdf        # laatste fallback (werkt altijd maar beperkte CSS)
