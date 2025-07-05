@@ -1,3 +1,4 @@
-streamlit>=1.35
+streamlit>=1.33
 pandas>=2.2
-weasyprint==61.2         # html-naar-pdf
+weasyprint>=61.2      # probeert eerst WeasyPrint
+xhtml2pdf>=0.2.15     # fallback – pure Python
