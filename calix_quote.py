@@ -18,6 +18,19 @@ import io
 import streamlit as st               #  pip install streamlit
 # pandas heb je (nu) niet meer nodig – laat staan om data in te lezen
 
+import pdfkit
+
+def html_to_pdf_bytes(html: str) -> bytes | None:
+    try:
+        from weasyprint import HTML
+        return HTML(string=html, base_url=".").write_pdf()
+    except Exception:
+        try:
+            return pdfkit.from_string(html, False)
+        except Exception:
+            return None
+
+
 # ────────────────────────────────────────────────────────────────────────────
 # PDF-helpers
 # ---------------------------------------------------------------------------
