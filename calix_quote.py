@@ -12,9 +12,10 @@ import base64
 TEMPLATE_DIR = "templates"
 env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
 
-# Functie om HTML naar PDF te converteren
-def html_to_pdf(html_string, output_path):
-    HTML(string=html_string).write_pdf(output_path)
+def html_to_file(html_string, output_path):
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(html_string)
+
 
 
 # Functie om PDF downloadbaar te maken in Streamlit
@@ -161,23 +162,28 @@ if submit:
     </html>
     """
 # 📄 app.py - DEEL 4 (vervolg op Deel 3)
+# 📄 DEEL 4 – HTML-bestand opslaan i.p.v. PDF
+from pathlib import Path
+import tempfile
 
-    # === Pad naar tijdelijke opslaglocatie (bijv. binnen Streamlit-omgeving)
-    from pathlib import Path
-    import tempfile
+temp_dir = tempfile.gettempdir()
+klantnaam_schoon = klantnaam.lower().replace(" ", "_").replace(",", "").replace(".", "")
+html_filename = f"offerte_{klantnaam_schoon}_{offertenummer}.html"
+html_path = os.path.join(temp_dir, html_filename)
 
-    # Maak tijdelijke folder aan voor output
-    temp_dir = tempfile.gettempdir()
-    klantnaam_schoon = klantnaam.lower().replace(" ", "_").replace(",", "").replace(".", "")
-    bestandsnaam_pdf = f"offerte_{klantnaam_schoon}_{offertenummer}.pdf"
-    pdf_path = os.path.join(temp_dir, bestandsnaam_pdf)
+try:
+    html_to_file(html_string, html_path)
+    st.success("✅ Offerte succesvol gegenereerd als HTML-bestand.")
+except Exception as e:
+    st.error(f"❌ Fout bij genereren van offerte: {e}")
 
-    try:
-        html_to_pdf(html_string, pdf_path)
-        st.success("✅ Offerte succesvol gegenereerd als PDF.")
-    except Exception as e:
-        st.error(f"❌ Er ging iets mis bij het genereren van de PDF: {e}")
 # 📄 app.py - DEEL 5 (vervolg op Deel 4)
+def get_html_download_link(file_path, filename="offerte.html"):
+    with open(file_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+    b64 = base64.b64encode(html_content.encode("utf-8")).decode()
+    href = f'<a href="data:text/html;base64,{b64}" download="{filename}">📥 Download offerte als HTML-bestand</a>'
+    return href
 
     # Toon downloadlink
     st.markdown("---")
