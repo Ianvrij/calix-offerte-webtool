@@ -179,6 +179,9 @@ html_filled = html_template.format(
     BTW=money(btw),
     TOTAALINC=money(totaal_inc)
 )
+
+html_template = HTML_TEMPLATE        # ← gebruik onze string
+
 HTML_TEMPLATE = r"""
 <!DOCTYPE html>
 <html lang="nl">
