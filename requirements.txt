@@ -2,3 +2,6 @@ streamlit
 weasyprint
 jinja2
 pandas
+streamlit>=1.35
+pandas>=2.2
+weasyprint==61.2        # pdf-engine
