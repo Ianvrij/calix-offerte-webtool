@@ -5,7 +5,7 @@ from datetime import date, timedelta
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 import os
-import pdfkit
+from weasyprint import HTML
 import base64
 
 # Pad naar de templates (HTML)
@@ -14,17 +14,8 @@ env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
 
 # Functie om HTML naar PDF te converteren
 def html_to_pdf(html_string, output_path):
-    options = {
-        'enable-local-file-access': '',
-        'page-size': 'A4',
-        'encoding': "UTF-8",
-        'margin-top': '0mm',
-        'margin-bottom': '0mm',
-        'margin-left': '0mm',
-        'margin-right': '0mm',
-        'print-media-type': '',
-    }
-    pdfkit.from_string(html_string, output_path, options=options)
+    HTML(string=html_string).write_pdf(output_path)
+
 
 # Functie om PDF downloadbaar te maken in Streamlit
 def get_pdf_download_link(pdf_path, filename="offerte_calix.pdf"):
